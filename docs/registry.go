@@ -119,9 +119,15 @@ func (r *Registry) setUserAgent(req *http.Request, extra ...VersionChecker) {
 	userAgent := make(map[string]string, len(r.baseVersions)+len(extra))
 
 	for _, v := range r.baseVersions {
+		if v == nil {
+			continue
+		}
 		userAgent[v.Name()] = v.Version()
 	}
 	for _, v := range extra {
+		if v == nil {
+			continue
+		}
 		userAgent[v.Name()] = v.Version()
 	}
 
@@ -188,7 +194,7 @@ func (r *Registry) GetRemoteImageJSON(imgID, registry string, token []string) ([
 		return nil, -1, fmt.Errorf("Failed to download json: %s", err)
 	}
 	req.Header.Set("Authorization", "Token "+strings.Join(token, ", "))
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 	res, err := r.client.Do(req)
 	if err != nil {
 		return nil, -1, fmt.Errorf("Failed to download json: %s", err)
@@ -216,7 +222,7 @@ func (r *Registry) GetRemoteImageLayer(imgID, registry string, token []string) (
 		return nil, fmt.Errorf("Error while getting from the server: %s\n", err)
 	}
 	req.Header.Set("Authorization", "Token "+strings.Join(token, ", "))
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 	res, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -240,7 +246,7 @@ func (r *Registry) GetRemoteTags(registries []string, repository string, token [
 			return nil, err
 		}
 		req.Header.Set("Authorization", "Token "+strings.Join(token, ", "))
-		r.setUserAgent(req, nil)
+		r.setUserAgent(req)
 		res, err := r.client.Do(req)
 		if err != nil {
 			return nil, err
@@ -279,7 +285,7 @@ func (r *Registry) GetRepositoryData(indexEp, remote string) (*RepositoryData, e
 		req.SetBasicAuth(r.authConfig.Username, r.authConfig.Password)
 	}
 	req.Header.Set("X-Docker-Token", "true")
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 
 	res, err := r.client.Do(req)
 	if err != nil {
@@ -343,7 +349,7 @@ func (r *Registry) PushImageJSONRegistry(imgData *ImgData, jsonRaw []byte, regis
 	req.Header.Add("Content-type", "application/json")
 	req.Header.Set("Authorization", "Token "+strings.Join(token, ","))
 	req.Header.Set("X-Docker-Checksum", imgData.Checksum)
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 
 	utils.Debugf("Setting checksum for %s: %s", imgData.ID, imgData.Checksum)
 	res, err := doWithCookies(r.client, req)
@@ -378,7 +384,7 @@ func (r *Registry) PushImageLayerRegistry(imgID string, layer io.Reader, registr
 	req.ContentLength = -1
 	req.TransferEncoding = []string{"chunked"}
 	req.Header.Set("Authorization", "Token "+strings.Join(token, ","))
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 	res, err := doWithCookies(r.client, req)
 	if err != nil {
 		return fmt.Errorf("Failed to upload layer: %s", err)
@@ -416,7 +422,7 @@ func (r *Registry) PushRegistryTag(remote, revision, tag, registry string, token
 	}
 	req.Header.Add("Content-type", "application/json")
 	req.Header.Set("Authorization", "Token "+strings.Join(token, ","))
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 	req.ContentLength = int64(len(revision))
 	res, err := doWithCookies(r.client, req)
 	if err != nil {
@@ -449,7 +455,7 @@ func (r *Registry) PushImageJSONIndex(indexEp, remote string, imgList []*ImgData
 	req.SetBasicAuth(r.authConfig.Username, r.authConfig.Password)
 	req.ContentLength = int64(len(imgListJSON))
 	req.Header.Set("X-Docker-Token", "true")
-	r.setUserAgent(req, nil)
+	r.setUserAgent(req)
 	if validate {
 		req.Header["X-Docker-Endpoints"] = regs
 	}
@@ -470,7 +476,7 @@ func (r *Registry) PushImageJSONIndex(indexEp, remote string, imgList []*ImgData
 		req.SetBasicAuth(r.authConfig.Username, r.authConfig.Password)
 		req.ContentLength = int64(len(imgListJSON))
 		req.Header.Set("X-Docker-Token", "true")
-		r.setUserAgent(req, nil)
+		r.setUserAgent(req)
 		if validate {
 			req.Header["X-Docker-Endpoints"] = regs
 		}
