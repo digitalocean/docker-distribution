@@ -19,9 +19,8 @@ import (
 
 var ErrAlreadyExists = errors.New("Image already exists")
 
-func pingRegistryEndpoint(endpoint string) error {
-	// FIXME: implement the check to discover if it should be http or https
-	resp, err := http.Get(endpoint)
+func URLScheme() string {
+	u, err := url.Parse(auth.IndexServerAddress())
 	if err != nil {
 		return err
 	}
@@ -87,8 +86,8 @@ func doWithCookies(c *http.Client, req *http.Request) (*http.Response, error) {
 
 // Retrieve the history of a given image from the Registry.
 // Return a list of the parent's json (requested image included)
-func (r *Registry) GetRemoteHistory(imgId, registry string, token []string) ([]string, error) {
-	req, err := http.NewRequest("GET", registry+"images/"+imgId+"/ancestry", nil)
+func (r *Registry) GetRemoteHistory(imgID, registry string, token []string) ([]string, error) {
+	req, err := http.NewRequest("GET", registry+"/images/"+imgID+"/ancestry", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +95,7 @@ func (r *Registry) GetRemoteHistory(imgId, registry string, token []string) ([]s
 	res, err := r.client.Do(req)
 	if err != nil || res.StatusCode != 200 {
 		if res != nil {
-			return nil, fmt.Errorf("Internal server error: %d trying to fetch remote history for %s", res.StatusCode, imgId)
+			return nil, fmt.Errorf("Internal server error: %d trying to fetch remote history for %s", res.StatusCode, imgID)
 		}
 		return nil, err
 	}
@@ -116,10 +115,10 @@ func (r *Registry) GetRemoteHistory(imgId, registry string, token []string) ([]s
 }
 
 // Check if an image exists in the Registry
-func (r *Registry) LookupRemoteImage(imgId, registry string, token []string) bool {
+func (r *Registry) LookupRemoteImage(imgID, registry string, token []string) bool {
 	rt := &http.Transport{Proxy: http.ProxyFromEnvironment}
 
-	req, err := http.NewRequest("GET", registry+"/v1/images/"+imgId+"/json", nil)
+	req, err := http.NewRequest("GET", registry+"/v1/images/"+imgID+"/json", nil)
 	if err != nil {
 		return false
 	}
@@ -132,9 +131,9 @@ func (r *Registry) LookupRemoteImage(imgId, registry string, token []string) boo
 }
 
 // Retrieve an image from the Registry.
-func (r *Registry) GetRemoteImageJSON(imgId, registry string, token []string) ([]byte, int, error) {
+func (r *Registry) GetRemoteImageJSON(imgID, registry string, token []string) ([]byte, int, error) {
 	// Get the JSON
-	req, err := http.NewRequest("GET", registry+"images/"+imgId+"/json", nil)
+	req, err := http.NewRequest("GET", registry+"/images/"+imgID+"/json", nil)
 	if err != nil {
 		return nil, -1, fmt.Errorf("Failed to download json: %s", err)
 	}
@@ -160,8 +159,8 @@ func (r *Registry) GetRemoteImageJSON(imgId, registry string, token []string) ([
 	return jsonString, imageSize, nil
 }
 
-func (r *Registry) GetRemoteImageLayer(imgId, registry string, token []string) (io.ReadCloser, error) {
-	req, err := http.NewRequest("GET", registry+"images/"+imgId+"/layer", nil)
+func (r *Registry) GetRemoteImageLayer(imgID, registry string, token []string) (io.ReadCloser, error) {
+	req, err := http.NewRequest("GET", registry+"/images/"+imgID+"/layer", nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error while getting from the server: %s\n", err)
 	}
@@ -180,7 +179,10 @@ func (r *Registry) GetRemoteTags(registries []string, repository string, token [
 		repository = "library/" + repository
 	}
 	for _, host := range registries {
-		endpoint := fmt.Sprintf("%srepositories/%s/tags", host, repository)
+		endpoint := fmt.Sprintf("%s/v1/repositories/%s/tags", host, repository)
+		if !(strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://")) {
+			endpoint = fmt.Sprintf("%s://%s", URLScheme(), endpoint)
+		}
 		req, err := r.opaqueRequest("GET", endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -313,8 +315,9 @@ func (r *Registry) PushImageJSONRegistry(imgData *ImgData, jsonRaw []byte, regis
 	return nil
 }
 
-func (r *Registry) PushImageLayerRegistry(imgId string, layer io.Reader, registry string, token []string) error {
-	req, err := http.NewRequest("PUT", registry+"images/"+imgId+"/layer", layer)
+func (r *Registry) PushImageLayerRegistry(imgID string, layer io.Reader, registry string, token []string) error {
+	registry = registry + "/v1"
+	req, err := http.NewRequest("PUT", registry+"/images/"+imgID+"/layer", layer)
 	if err != nil {
 		return err
 	}
