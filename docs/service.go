@@ -86,11 +86,7 @@ func (s *Service) Search(job *engine.Job) engine.Status {
 	if err != nil {
 		return job.Error(err)
 	}
-	hostname, err = ExpandAndVerifyRegistryUrl(hostname)
-	if err != nil {
-		return job.Error(err)
-	}
-	r, err := NewSession(authConfig, HTTPRequestFactory(metaHeaders), hostname, true)
+	r, err := NewRegistry(authConfig, HTTPRequestFactory(metaHeaders), hostname, true)
 	if err != nil {
 		return job.Error(err)
 	}
