@@ -37,40 +37,21 @@ func scanForAPIVersion(hostname string) (string, APIVersion) {
 	return hostname, DefaultAPIVersion
 }
 
-func NewEndpoint(hostname string, insecureRegistries []string) (*Endpoint, error) {
-	endpoint, err := newEndpoint(hostname, insecureRegistries)
+func NewEndpoint(hostname string) (*Endpoint, error) {
+	endpoint, err := newEndpoint(hostname)
+	if err != nil {
+		return nil, err
+	}
+	endpoint.secure, err = isSecure(endpoint.URL.Host, insecureRegistries)
 	if err != nil {
 		return nil, err
 	}
 
-	// Try HTTPS ping to registry
-	endpoint.URL.Scheme = "https"
-	if _, err := endpoint.Ping(); err != nil {
-
-		//TODO: triggering highland build can be done there without "failing"
-
-		if endpoint.secure {
-			// If registry is secure and HTTPS failed, show user the error and tell them about `--insecure-registry`
-			// in case that's what they need. DO NOT accept unknown CA certificates, and DO NOT fallback to HTTP.
-			return nil, fmt.Errorf("Invalid registry endpoint %s: %v. If this private registry supports only HTTP or HTTPS with an unknown CA certificate, please add `--insecure-registry %s` to the daemon's arguments. In the case of HTTPS, if you have access to the registry's CA certificate, no need for the flag; simply place the CA certificate at /etc/docker/certs.d/%s/ca.crt", endpoint, err, endpoint.URL.Host, endpoint.URL.Host)
-		}
-
-		// If registry is insecure and HTTPS failed, fallback to HTTP.
-		log.Debugf("Error from registry %q marked as insecure: %v. Insecurely falling back to HTTP", endpoint, err)
-		endpoint.URL.Scheme = "http"
-		_, err2 := endpoint.Ping()
-		if err2 == nil {
-			return endpoint, nil
-		}
-
-		return nil, fmt.Errorf("Invalid registry endpoint %q. HTTPS attempt: %v. HTTP attempt: %v", endpoint, err, err2)
-	}
-
 	return endpoint, nil
 }
-func newEndpoint(hostname string, insecureRegistries []string) (*Endpoint, error) {
+func newEndpoint(hostname string) (*Endpoint, error) {
 	var (
-		endpoint        = Endpoint{}
+		endpoint        Endpoint
 		trimmedHostname string
 		err             error
 	)
@@ -79,10 +60,6 @@ func newEndpoint(hostname string, insecureRegistries []string) (*Endpoint, error
 	}
 	trimmedHostname, endpoint.Version = scanForAPIVersion(hostname)
 	endpoint.URL, err = url.Parse(trimmedHostname)
-	if err != nil {
-		return nil, err
-	}
-	endpoint.secure, err = isSecure(endpoint.URL.Host, insecureRegistries)
 	if err != nil {
 		return nil, err
 	}
