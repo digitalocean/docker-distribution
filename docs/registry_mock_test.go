@@ -21,9 +21,8 @@ import (
 )
 
 var (
-	testHTTPServer     *httptest.Server
-	insecureRegistries []string
-	testLayers         = map[string]map[string]string{
+	testHTTPServer *httptest.Server
+	testLayers     = map[string]map[string]string{
 		"77dbf71da1d00e3fbddc480176eac8994025630c6590d11cfc8fe1209c2a1d20": {
 			"json": `{"id":"77dbf71da1d00e3fbddc480176eac8994025630c6590d11cfc8fe1209c2a1d20",
 				"comment":"test base image","created":"2013-03-23T12:53:11.10432-07:00",
@@ -108,30 +107,6 @@ func init() {
 	r.HandleFunc("/v2/version", handlerGetPing).Methods("GET")
 
 	testHTTPServer = httptest.NewServer(handlerAccessLog(r))
-	URL, err := url.Parse(testHTTPServer.URL)
-	if err != nil {
-		panic(err)
-	}
-	insecureRegistries = []string{URL.Host}
-
-	// override net.LookupIP
-	lookupIP = func(host string) ([]net.IP, error) {
-		if host == "127.0.0.1" {
-			// I believe in future Go versions this will fail, so let's fix it later
-			return net.LookupIP(host)
-		}
-		for h, addrs := range mockHosts {
-			if host == h {
-				return addrs, nil
-			}
-			for _, addr := range addrs {
-				if addr.String() == host {
-					return []net.IP{addr}, nil
-				}
-			}
-		}
-		return nil, errors.New("lookup: no such host")
-	}
 }
 
 func handlerAccessLog(handler http.Handler) http.Handler {
@@ -230,8 +205,8 @@ func handlerGetImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeHeaders(w)
-	layer_size := len(layer["layer"])
-	w.Header().Add("X-Docker-Size", strconv.Itoa(layer_size))
+	layerSize := len(layer["layer"])
+	w.Header().Add("X-Docker-Size", strconv.Itoa(layerSize))
 	io.WriteString(w, layer[vars["action"]])
 }
 
@@ -240,16 +215,16 @@ func handlerPutImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	image_id := vars["image_id"]
+	imageID := vars["image_id"]
 	action := vars["action"]
-	layer, exists := testLayers[image_id]
+	layer, exists := testLayers[imageID]
 	if !exists {
 		if action != "json" {
 			http.NotFound(w, r)
 			return
 		}
 		layer = make(map[string]string)
-		testLayers[image_id] = layer
+		testLayers[imageID] = layer
 	}
 	if checksum := r.Header.Get("X-Docker-Checksum"); checksum != "" {
 		if checksum != layer["checksum_simple"] && checksum != layer["checksum_tarsum"] {
@@ -349,9 +324,9 @@ func handlerImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	images := []map[string]string{}
-	for image_id, layer := range testLayers {
+	for imageID, layer := range testLayers {
 		image := make(map[string]string)
-		image["id"] = image_id
+		image["id"] = imageID
 		image["checksum"] = layer["checksum_tarsum"]
 		image["Tag"] = "latest"
 		images = append(images, image)
