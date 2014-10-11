@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/pkg/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/utils"
 )
 
@@ -35,7 +35,7 @@ const (
 	ConnectTimeout
 )
 
-func newClient(jar http.CookieJar, roots *x509.CertPool, cert *tls.Certificate, timeout TimeoutType) *http.Client {
+func newClient(jar http.CookieJar, roots *x509.CertPool, cert *tls.Certificate, timeout TimeoutType, secure bool) *http.Client {
 	tlsConfig := tls.Config{
 		RootCAs: roots,
 		// Avoid fallback to SSL protocols < TLS1.0
@@ -223,49 +223,6 @@ func ResolveRepositoryName(reposName string) (string, string, error) {
 	}
 
 	return hostname, reposName, nil
-}
-
-// this method expands the registry name as used in the prefix of a repo
-// to a full url. if it already is a url, there will be no change.
-func ExpandAndVerifyRegistryUrl(hostname string, secure bool) (string, error) {
-	if hostname == IndexServerAddress() {
-		return hostname, nil
-	}
-
-	endpoint := fmt.Sprintf("http://%s/v1/", hostname)
-
-	if secure {
-		endpoint = fmt.Sprintf("https://%s/v1/", hostname)
-	}
-
-	if _, oerr := pingRegistryEndpoint(endpoint); oerr != nil {
-		//TODO: triggering highland build can be done there without "failing"
-		err := fmt.Errorf("Invalid registry endpoint '%s': %s ", endpoint, oerr)
-
-		if secure {
-			err = fmt.Errorf("%s. If this private registry supports only HTTP, please add `--insecure-registry %s` to the daemon's arguments.", oerr, hostname)
-		}
-
-		return "", err
-	}
-
-	return endpoint, nil
-}
-
-// this method verifies if the provided hostname is part of the list of
-// insecure registries and returns false if HTTP should be used
-func IsSecure(hostname string, insecureRegistries []string) bool {
-	if hostname == IndexServerAddress() {
-		return true
-	}
-
-	for _, h := range insecureRegistries {
-		if hostname == h {
-			return false
-		}
-	}
-
-	return true
 }
 
 func trustedLocation(req *http.Request) bool {

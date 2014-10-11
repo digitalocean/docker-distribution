@@ -90,7 +90,9 @@ func (s *Service) Search(job *engine.Job) engine.Status {
 		return job.Error(err)
 	}
 
-	endpoint, err := NewEndpoint(hostname, s.insecureRegistries)
+	secure := IsSecure(hostname, s.insecureRegistries)
+
+	endpoint, err := NewEndpoint(hostname, secure)
 	if err != nil {
 		return job.Error(err)
 	}
