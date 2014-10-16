@@ -35,7 +35,7 @@ const (
 	ConnectTimeout
 )
 
-func newClient(jar http.CookieJar, roots *x509.CertPool, cert *tls.Certificate, timeout TimeoutType, secure bool) *http.Client {
+func newClient(jar http.CookieJar, roots *x509.CertPool, cert *tls.Certificate, timeout TimeoutType) *http.Client {
 	tlsConfig := tls.Config{
 		RootCAs: roots,
 		// Avoid fallback to SSL protocols < TLS1.0
