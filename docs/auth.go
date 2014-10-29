@@ -229,7 +229,7 @@ func Login(authConfig *AuthConfig, factory *utils.HTTPRequestFactory) (string, e
 				return "", err
 			}
 			if resp.StatusCode == 200 {
-				status = "Login Succeeded"
+				return "Login Succeeded", nil
 			} else if resp.StatusCode == 401 {
 				return "", fmt.Errorf("Wrong login/password, please try again")
 			} else if resp.StatusCode == 403 {
@@ -257,7 +257,7 @@ func Login(authConfig *AuthConfig, factory *utils.HTTPRequestFactory) (string, e
 			return "", err
 		}
 		if resp.StatusCode == 200 {
-			status = "Login Succeeded"
+			return "Login Succeeded", nil
 		} else if resp.StatusCode == 401 {
 			return "", fmt.Errorf("Wrong login/password, please try again")
 		} else {
