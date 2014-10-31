@@ -158,7 +158,16 @@ func IsSecure(hostname string, insecureRegistries []string) bool {
 	if hostname == IndexServerAddress() {
 		return true
 	}
-
+	if len(insecureRegistries) == 0 {
+		host, _, err := net.SplitHostPort(hostname)
+		if err != nil {
+			host = hostname
+		}
+		if host == "127.0.0.1" || host == "localhost" {
+			return false
+		}
+		return true
+	}
 	for _, h := range insecureRegistries {
 		if hostname == h {
 			return false
