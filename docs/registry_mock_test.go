@@ -113,6 +113,25 @@ func init() {
 		panic(err)
 	}
 	insecureRegistries = []string{URL.Host}
+
+	// override net.LookupIP
+	lookupIP = func(host string) ([]net.IP, error) {
+		if host == "127.0.0.1" {
+			// I believe in future Go versions this will fail, so let's fix it later
+			return net.LookupIP(host)
+		}
+		for h, addrs := range mockHosts {
+			if host == h {
+				return addrs, nil
+			}
+			for _, addr := range addrs {
+				if addr.String() == host {
+					return []net.IP{addr}, nil
+				}
+			}
+		}
+		return nil, errors.New("lookup: no such host")
+	}
 }
 
 func handlerAccessLog(handler http.Handler) http.Handler {
