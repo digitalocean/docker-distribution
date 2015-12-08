@@ -299,8 +299,44 @@ type manifests struct {
 	etags  map[string]string
 }
 
-func (ms *manifests) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
-	u, err := ms.ub.BuildManifestURL(ms.name, dgst.String())
+func (ms *manifests) Tags() ([]string, error) {
+	u, err := ms.ub.BuildTagsURL(ms.name)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := ms.client.Get(u)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if SuccessStatus(resp.StatusCode) {
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		tagsResponse := struct {
+			Tags []string `json:"tags"`
+		}{}
+		if err := json.Unmarshal(b, &tagsResponse); err != nil {
+			return nil, err
+		}
+
+		return tagsResponse.Tags, nil
+	}
+	return nil, HandleErrorResponse(resp)
+}
+
+func (ms *manifests) Exists(dgst digest.Digest) (bool, error) {
+	// Call by Tag endpoint since the API uses the same
+	// URL endpoint for tags and digests.
+	return ms.ExistsByTag(dgst.String())
+}
+
+func (ms *manifests) ExistsByTag(tag string) (bool, error) {
+	u, err := ms.ub.BuildManifestURL(ms.name, tag)
 	if err != nil {
 		return false, err
 	}
@@ -461,8 +497,7 @@ func (ms *manifests) Put(ctx context.Context, m distribution.Manifest, options .
 
 		return dgst, nil
 	}
-
-	return "", HandleErrorResponse(resp)
+	return HandleErrorResponse(resp)
 }
 
 func (ms *manifests) Delete(ctx context.Context, dgst digest.Digest) error {
