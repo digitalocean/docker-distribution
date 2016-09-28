@@ -1,10 +1,12 @@
----
-title: "HTTP API V2"
-description: "Specification for the Registry API."
-keywords: registry, on-prem, images, tags, repository, distribution, api, advanced
-redirect_from:
-  - /reference/api/registry_api/
----
+<!--[metadata]>
++++
+title = "HTTP API V2"
+description = "Specification for the Registry API."
+keywords = ["registry, on-prem, images, tags, repository, distribution, api, advanced"]
+[menu.main]
+parent="smn_registry_ref"
++++
+<![end-metadata]-->
 
 # Docker Registry HTTP API V2
 
@@ -18,7 +20,7 @@ of this API, known as _Docker Registry HTTP API V2_.
 
 While the V1 registry protocol is usable, there are several problems with the
 architecture that have led to this new version. The main driver of this
-specification is a set of changes to the Docker image format, covered in
+specification is a set of changes to the docker the image format, covered in
 [docker/docker#8093](https://github.com/docker/docker/issues/8093).
 The new, self-contained image manifest simplifies image definition and improves
 security. This specification will build on that work, leveraging new properties
@@ -246,7 +248,7 @@ enforce this. The rules for a repository name are as follows:
    must match the regular expression `[a-z0-9]+(?:[._-][a-z0-9]+)*`.
 2. If a repository  name has two or more path components, they must be
    separated by a forward slash ("/").
-3. The total length of a repository name, including slashes, must be less than
+3. The total length of a repository name, including slashes, must be less the
    256 characters.
 
 These name requirements _only_ apply to the registry API and should accept a
@@ -334,7 +336,7 @@ digest. The _hex_ portion is the hex-encoded result of the hash.
 We define a _digest_ string to match the following grammar:
 ```
 digest      := algorithm ":" hex
-algorithm   := /[A-Za-z0-9_+.-]+/
+algorithm   := /[A-Fa-f0-9_+.-]+/
 hex         := /[A-Fa-f0-9]+/
 ```
 
@@ -678,7 +680,7 @@ the upload will not be considered complete. The format for the final chunk
 will be as follows:
 
 ```
-PUT /v2/<name>/blobs/uploads/<uuid>?digest=<digest>
+PUT /v2/<name>/blob/uploads/<uuid>?digest=<digest>
 Content-Length: <size of chunk>
 Content-Range: <start of range>-<end of range>
 Content-Type: application/octet-stream
@@ -687,7 +689,7 @@ Content-Type: application/octet-stream
 ```
 
 Optionally, if all chunks have already been uploaded, a `PUT` request with a
-`digest` parameter and zero-length body may be sent to complete and validate
+`digest` parameter and zero-length body may be sent to complete and validated
 the upload. Multiple "digest" parameters may be provided with different
 digests. The server may verify none or all of them but _must_ notify the
 client if the content is rejected.
@@ -797,7 +799,7 @@ Note that the upload url will not be available forever. If the upload uuid is
 unknown to the registry, a `404 Not Found` response will be returned and the
 client must restart the upload process.
 
-#### Deleting a Layer
+### Deleting a Layer
 
 A layer may be deleted from the registry via its `name` and `digest`. A
 delete may be issued with the following request format:
@@ -1113,7 +1115,7 @@ A list of methods and URIs are covered in the table below:
 | GET | `/v2/<name>/tags/list` | Tags | Fetch the tags under the repository identified by `name`. |
 | GET | `/v2/<name>/manifests/<reference>` | Manifest | Fetch the manifest identified by `name` and `reference` where `reference` can be a tag or digest. A `HEAD` request can also be issued to this endpoint to obtain resource information without receiving all data. |
 | PUT | `/v2/<name>/manifests/<reference>` | Manifest | Put the manifest identified by `name` and `reference` where `reference` can be a tag or digest. |
-| DELETE | `/v2/<name>/manifests/<reference>` | Manifest | Delete the manifest or tag identified by `name` and `reference` where `reference` can be a tag or digest. Note that a manifest can _only_ be deleted by digest. |
+| DELETE | `/v2/<name>/manifests/<reference>` | Manifest | Delete the manifest identified by `name` and `reference`. Note that a manifest can _only_ be deleted by `digest`. |
 | GET | `/v2/<name>/blobs/<digest>` | Blob | Retrieve the blob from the registry identified by `digest`. A `HEAD` request can also be issued to this endpoint to obtain resource information without receiving all data. |
 | DELETE | `/v2/<name>/blobs/<digest>` | Blob | Delete the blob identified by `name` and `digest` |
 | POST | `/v2/<name>/blobs/uploads/` | Initiate Blob Upload | Initiate a resumable blob upload. If successful, an upload location will be provided to complete the upload. Optionally, if the `digest` parameter is present, the request body will be used to complete the upload in a single request. |
@@ -1142,8 +1144,6 @@ The error codes encountered via the API are enumerated in the following table:
  `MANIFEST_UNVERIFIED` | manifest failed signature verification | During manifest upload, if the manifest fails signature verification, this error will be returned.
  `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation.
  `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry.
- `PAGINATION_NUMBER_INVALID` | invalid number of results requested | Returned when the "n" parameter (number of results to return) is not an integer, or "n" is negative.
- `RANGE_INVALID` | invalid content range | When a layer is uploaded, the provided range is checked against the uploaded chunk. This error is returned if the range is out of order.
  `SIZE_INVALID` | provided length did not match content length | When a layer is uploaded, the provided size will be checked against the uploaded content. If they do not match, this error will be returned.
  `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned.
  `UNAUTHORIZED` | authentication required | The access controller was unable to authenticate the client. Often this will be accompanied by a Www-Authenticate HTTP response header indicating how to authenticate.
@@ -1210,7 +1210,7 @@ The registry does not implement the V2 API.
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1248,7 +1248,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1320,7 +1320,7 @@ The following parameters should be specified on the request:
 ```
 200 OK
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
     "name": <name>,
@@ -1348,7 +1348,7 @@ The following headers will be returned with the response:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1386,7 +1386,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1423,7 +1423,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1460,7 +1460,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1518,7 +1518,7 @@ The following parameters should be specified on the request:
 200 OK
 Content-Length: <length>
 Link: <<url>?n=<last n value>&last=<last entry from response>>; rel="next"
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
     "name": <name>,
@@ -1541,43 +1541,13 @@ The following headers will be returned with the response:
 
 
 
-###### On Failure: Invalid pagination number
-
-```
-400 Bad Request
-Content-Type: application/json
-
-{
-	"errors:" [
-	    {
-            "code": <error code>,
-            "message": "<error message>",
-            "detail": ...
-        },
-        ...
-    ]
-}
-```
-
-The received parameter n was invalid in some way, as described by the error code. The client should resolve the issue and retry the request.
-
-
-
-The error codes that may be included in the response body are enumerated below:
-
-|Code|Message|Description|
-|----|-------|-----------|
-| `PAGINATION_NUMBER_INVALID` | invalid number of results requested | Returned when the "n" parameter (number of results to return) is not an integer, or "n" is negative. |
-
-
-
 ###### On Failure: Authentication Required
 
 ```
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1615,7 +1585,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1652,7 +1622,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1689,7 +1659,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1793,7 +1763,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1826,7 +1796,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1864,7 +1834,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1901,7 +1871,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -1938,7 +1908,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2039,7 +2009,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2075,7 +2045,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2113,7 +2083,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2150,7 +2120,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2187,7 +2157,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2223,7 +2193,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
     "errors:" [{
@@ -2271,7 +2241,7 @@ The error codes that may be included in the response body are enumerated below:
 
 #### DELETE Manifest
 
-Delete the manifest or tag identified by `name` and `reference` where `reference` can be a tag or digest. Note that a manifest can _only_ be deleted by digest.
+Delete the manifest identified by `name` and `reference`. Note that a manifest can _only_ be deleted by `digest`.
 
 
 
@@ -2311,7 +2281,7 @@ The following parameters should be specified on the request:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2344,7 +2314,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2382,7 +2352,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2419,7 +2389,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2456,7 +2426,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2492,7 +2462,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2506,7 +2476,7 @@ Content-Type: application/json
 }
 ```
 
-The specified `name` or `reference` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest or tag was already deleted if this response is returned.
+The specified `name` or `reference` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest was already deleted if this response is returned.
 
 
 
@@ -2525,7 +2495,7 @@ The error codes that may be included in the response body are enumerated below:
 405 Method Not Allowed
 ```
 
-Manifest or tag delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled.
+Manifest delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled.
 
 
 
@@ -2617,7 +2587,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2648,7 +2618,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2681,7 +2651,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2719,7 +2689,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2756,7 +2726,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2793,7 +2763,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2877,7 +2847,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2908,7 +2878,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2951,7 +2921,7 @@ The range specification cannot be satisfied for the requested content. This can 
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -2989,7 +2959,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3026,7 +2996,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3063,7 +3033,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3166,7 +3136,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3197,7 +3167,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 405 Method Not Allowed
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3229,7 +3199,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3267,7 +3237,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3304,7 +3274,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3341,7 +3311,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3479,7 +3449,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3517,7 +3487,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3554,7 +3524,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3591,7 +3561,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3651,9 +3621,9 @@ The following parameters should be specified on the request:
 
 ```
 202 Accepted
-Location: /v2/<name>/blobs/uploads/<uuid>
-Range: 0-<offset>
 Content-Length: 0
+Location: /v2/<name>/blobs/uploads/<uuid>
+Range: 0-0
 Docker-Upload-UUID: <uuid>
 ```
 
@@ -3663,9 +3633,9 @@ The following headers will be returned with the response:
 
 |Name|Description|
 |----|-----------|
+|`Content-Length`|The `Content-Length` header must be zero and the body must be empty.|
 |`Location`|The location of the created upload. Clients should use the contents verbatim to complete the upload, adding parameters where required.|
 |`Range`|Range header indicating the progress of the upload. When starting an upload, it will return an empty range, since no content has been received.|
-|`Content-Length`|The `Content-Length` header must be zero and the body must be empty.|
 |`Docker-Upload-UUID`|Identifies the docker upload uuid for the current request.|
 
 
@@ -3696,7 +3666,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3734,7 +3704,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3771,7 +3741,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3808,7 +3778,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3931,7 +3901,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -3969,7 +3939,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4006,7 +3976,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4043,7 +4013,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4136,7 +4106,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4168,7 +4138,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4200,7 +4170,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4238,7 +4208,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4275,7 +4245,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4312,7 +4282,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4379,7 +4349,7 @@ The following parameters should be specified on the request:
 ###### On Success: Data Accepted
 
 ```
-202 Accepted
+204 No Content
 Location: /v2/<name>/blobs/uploads/<uuid>
 Range: 0-<offset>
 Content-Length: 0
@@ -4404,7 +4374,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4436,7 +4406,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4468,7 +4438,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4506,7 +4476,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4543,7 +4513,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4580,7 +4550,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4645,7 +4615,7 @@ The following parameters should be specified on the request:
 ###### On Success: Chunk Accepted
 
 ```
-202 Accepted
+204 No Content
 Location: /v2/<name>/blobs/uploads/<uuid>
 Range: 0-<offset>
 Content-Length: 0
@@ -4670,7 +4640,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4702,7 +4672,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4744,7 +4714,7 @@ The `Content-Range` specification cannot be accepted, either because it does not
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4782,7 +4752,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4819,7 +4789,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4856,7 +4826,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4925,7 +4895,7 @@ The following parameters should be specified on the request:
 ###### On Success: Upload Complete
 
 ```
-201 Created
+204 No Content
 Location: <blob location>
 Content-Range: <start of range>-<end of range, inclusive>
 Content-Length: 0
@@ -4950,7 +4920,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -4983,7 +4953,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5015,7 +4985,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5053,7 +5023,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5090,7 +5060,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5127,7 +5097,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5211,7 +5181,7 @@ The following headers will be returned with the response:
 
 ```
 400 Bad Request
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5242,7 +5212,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ```
 404 Not Found
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5274,7 +5244,7 @@ The error codes that may be included in the response body are enumerated below:
 401 Unauthorized
 WWW-Authenticate: <scheme> realm="<realm>", ..."
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5312,7 +5282,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 404 Not Found
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5349,7 +5319,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 403 Forbidden
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5386,7 +5356,7 @@ The error codes that may be included in the response body are enumerated below:
 ```
 429 Too Many Requests
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"errors:" [
@@ -5448,7 +5418,7 @@ Request an unabridged list of repositories available.  The implementation may im
 ```
 200 OK
 Content-Length: <length>
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"repositories": [
@@ -5481,7 +5451,7 @@ The following parameters should be specified on the request:
 
 |Name|Kind|Description|
 |----|----|-----------|
-|`n`|query|Limit the number of entries in each response. It not present, 100 entries will be returned.|
+|`n`|query|Limit the number of entries in each response. It not present, all entries will be returned.|
 |`last`|query|Result set will include values lexically after last.|
 
 
@@ -5493,7 +5463,7 @@ The following parameters should be specified on the request:
 200 OK
 Content-Length: <length>
 Link: <<url>?n=<last n value>&last=<last entry from response>>; rel="next"
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
 	"repositories": [

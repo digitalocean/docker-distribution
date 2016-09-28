@@ -1,12 +1,14 @@
----
-published: false
----
+<!--[metadata]>
++++
+draft = true
++++
+<![end-metadata]-->
 
 # Distribution API Implementations
 
 This is a list of known implementations of the Distribution API spec.
 
-## [Docker Distribution Registry](https://github.com/distribution/distribution)
+## [Docker Distribution Registry](https://github.com/docker/distribution)
 
 Docker distribution is the reference implementation of the distribution API
 specification. It aims to fully implement the entire specification.

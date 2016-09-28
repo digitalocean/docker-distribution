@@ -1,14 +1,19 @@
----
-title: "Token Authentication Implementation"
-description: "Describe the reference implementation of the Docker Registry v2 authentication schema"
-keywords: registry, on-prem, images, tags, repository, distribution, JWT authentication, advanced
----
+<!--[metadata]>
++++
+title = "Token Authentication Implementation"
+description = "Describe the reference implementation of the Docker Registry v2 authentication schema"
+keywords = ["registry, on-prem, images, tags, repository, distribution, JWT authentication, advanced"]
+[menu.main]
+parent="smn_registry_ref"
+weight=101
++++
+<![end-metadata]-->
 
 # Docker Registry v2 Bearer token specification
 
-This specification covers the `distribution/distribution` implementation of the
+This specification covers the `docker/distribution` implementation of the
 v2 Registry's authentication schema.  Specifically, it describes the JSON
-Web Token schema that `distribution/distribution` has adopted to implement the
+Web Token schema that `docker/distribution` has adopted to implement the
 client-opaque Bearer token issued by an authentication service and
 understood by the registry.
 
