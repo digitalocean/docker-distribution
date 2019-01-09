@@ -16,14 +16,10 @@ import (
 	logrus_bugsnag "github.com/Shopify/logrus-bugsnag"
 
 	logstash "github.com/bshuster-repo/logrus-logstash-hook"
-	"github.com/bugsnag/bugsnag-go"
-	"github.com/docker/go-metrics"
 	gorhandlers "github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/yvasiyarov/gorelic"
-	"golang.org/x/crypto/acme"
-	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/docker/distribution/configuration"
 	dcontext "github.com/docker/distribution/context"
@@ -240,6 +236,7 @@ func (registry *Registry) ListenAndServe() error {
 		if !ok {
 			return fmt.Errorf("unknown minimum TLS level '%s' specified for http.tls.minimumtls", config.HTTP.TLS.MinimumTLS)
 		}
+
 		dcontext.GetLogger(registry.app).Infof("restricting TLS version to %s or higher", config.HTTP.TLS.MinimumTLS)
 
 		tlsCipherSuites, err := getCipherSuites(config.HTTP.TLS.CipherSuites)
@@ -247,7 +244,6 @@ func (registry *Registry) ListenAndServe() error {
 			return err
 		}
 		dcontext.GetLogger(registry.app).Infof("restricting TLS cipher suites to: %s", strings.Join(getCipherSuiteNames(tlsCipherSuites), ","))
-
 		tlsConf := &tls.Config{
 			ClientAuth:               tls.NoClientCert,
 			NextProtos:               nextProtos(config),
