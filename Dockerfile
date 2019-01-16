@@ -9,6 +9,8 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS base
 COPY --from=goreleaser-xx / /
 RUN apk add --no-cache file git
 WORKDIR /go/src/github.com/docker/distribution
+ENV DISTRIBUTION_DIR /go/src/github.com/docker/distribution
+ENV BUILDTAGS include_oss include_gcs
 
 FROM base AS build
 ENV GO111MODULE=auto
