@@ -493,6 +493,7 @@ func New(params DriverParameters) (*Driver, error) {
 			setv2Handlers(s3obj)
 		}
 	}
+
 	// TODO Currently multipart uploads have no timestamps, so this would be unwise
 	// if you initiated a new s3driver while another one is running on the same bucket.
 	// multis, _, err := bucket.ListMulti("", "")
@@ -765,7 +766,7 @@ func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo,
 		Bucket: aws.String(d.Bucket),
 		Key:    aws.String(d.s3Path(path)),
 	})
-	if err == nil && headResp.ContentLength != nil {
+	if err == nil {
 		if headResp.ContentLength != nil {
 			fi.Size = *headResp.ContentLength
 		}
