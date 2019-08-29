@@ -45,6 +45,9 @@ COPY --from=build /out/*.sha256 /
 
 FROM scratch AS binary
 COPY --from=build /usr/local/bin/registry* /
+WORKDIR $DISTRIBUTION_DIR
+COPY . $DISTRIBUTION_DIR
+RUN CGO_ENABLED=0 make PREFIX=/go clean binaries && file ./bin/registry | grep "statically linked"
 
 FROM alpine:3.14
 RUN set -ex \
