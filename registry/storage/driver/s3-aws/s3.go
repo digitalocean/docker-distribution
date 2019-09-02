@@ -541,28 +541,28 @@ func New(params DriverParameters) (*Driver, error) {
 			return nil, fmt.Errorf("on Amazon S3 this storage driver can only be used with v4 authentication")
 		}
 
-	awsConfig := aws.NewConfig()
+		awsConfig := aws.NewConfig()
 
-	if params.AccessKey != "" && params.SecretKey != "" {
-		creds := credentials.NewStaticCredentials(
-			params.AccessKey,
-			params.SecretKey,
-			params.SessionToken,
-		)
-		awsConfig.WithCredentials(creds)
-	}
+		if params.AccessKey != "" && params.SecretKey != "" {
+			creds := credentials.NewStaticCredentials(
+				params.AccessKey,
+				params.SecretKey,
+				params.SessionToken,
+			)
+			awsConfig.WithCredentials(creds)
+		}
 
-	if params.RegionEndpoint != "" {
-		awsConfig.WithEndpoint(params.RegionEndpoint)
-		awsConfig.WithS3ForcePathStyle(params.ForcePathStyle)
-	}
+		if params.RegionEndpoint != "" {
+			awsConfig.WithEndpoint(params.RegionEndpoint)
+			awsConfig.WithS3ForcePathStyle(params.ForcePathStyle)
+		}
 
-	awsConfig.WithS3UseAccelerate(params.Accelerate)
-	awsConfig.WithRegion(params.Region)
-	awsConfig.WithDisableSSL(!params.Secure)
-	if params.UseDualStack {
-		awsConfig.UseDualStackEndpoint = endpoints.DualStackEndpointStateEnabled
-	}
+		awsConfig.WithS3UseAccelerate(params.Accelerate)
+		awsConfig.WithRegion(params.Region)
+		awsConfig.WithDisableSSL(!params.Secure)
+		if params.UseDualStack {
+			awsConfig.UseDualStackEndpoint = endpoints.DualStackEndpointStateEnabled
+		}
 
 		if params.UserAgent != "" || params.SkipVerify {
 			httpTransport := http.DefaultTransport
@@ -582,21 +582,20 @@ func New(params DriverParameters) (*Driver, error) {
 			}
 		}
 
-		sess, err = session.NewSession(awsConfig)
+		sess, err := session.NewSession(awsConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new session with aws config: %v", err)
 		}
 		s3obj = s3.New(sess)
+		sess, err = session.NewSession(awsConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new session with aws config: %v", err)
+		}
 
-	sess, err := session.NewSession(awsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new session with aws config: %v", err)
-	}
-	s3obj := s3.New(sess)
-
-	// enable S3 compatible signature v2 signing instead
-	if !params.V4Auth {
-		setv2Handlers(s3obj)
+		// enable S3 compatible signature v2 signing instead
+		if !params.V4Auth {
+			setv2Handlers(s3obj)
+		}
 	}
 
 	// TODO Currently multipart uploads have no timestamps, so this would be unwise
