@@ -31,10 +31,10 @@ func blobUploadDispatcher(ctx *Context, r *http.Request) http.Handler {
 	}
 
 	if !ctx.readOnly {
-		handler["POST"] = http.HandlerFunc(buh.PostBlobData)
-		handler["PATCH"] = http.HandlerFunc(buh.PatchBlobData)
-		handler["PUT"] = http.HandlerFunc(buh.BlobUploadComplete)
-		handler["DELETE"] = http.HandlerFunc(buh.CancelBlobUpload)
+		handler[http.MethodPost] = http.HandlerFunc(buh.StartBlobUpload)
+		handler[http.MethodPatch] = http.HandlerFunc(buh.PatchBlobData)
+		handler[http.MethodPut] = http.HandlerFunc(buh.BlobUploadComplete)
+		handler[http.MethodDelete] = http.HandlerFunc(buh.CancelBlobUpload)
 	}
 
 	if buh.UUID != "" {

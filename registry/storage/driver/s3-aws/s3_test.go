@@ -100,6 +100,8 @@ func init() {
 			driverName + "-test",
 			objectACL,
 			sessionToken,
+			useDualStackBool,
+			accelerateBool,
 			false,
 			map[string]string{},
 		}
