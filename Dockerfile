@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.3
 FROM golang:1.16-alpine AS build
-
 ARG GO_VERSION=1.16.15
 ARG GORELEASER_XX_VERSION=1.2.5
+
 
 FROM --platform=$BUILDPLATFORM crazymax/goreleaser-xx:${GORELEASER_XX_VERSION} AS goreleaser-xx
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS base
