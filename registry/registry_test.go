@@ -24,6 +24,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+
 	"github.com/docker/distribution/configuration"
 	dcontext "github.com/docker/distribution/context"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
@@ -404,4 +407,60 @@ func TestRegistryUnsupportedCipherSuite(t *testing.T) {
 	// send stop signal
 	quit <- os.Interrupt
 	time.Sleep(100 * time.Millisecond)
+}
+
+func TestConfigureLogging(t *testing.T) {
+	yamlConfig := `---
+log:
+  level: warn
+  fields:
+    foo: bar
+    baz: xyzzy
+`
+
+	var config configuration.Configuration
+	err := yaml.Unmarshal([]byte(yamlConfig), &config)
+	if err != nil {
+		t.Fatal("failed to parse config: ", err)
+	}
+
+	ctx, err := configureLogging(context.Background(), &config)
+	if err != nil {
+		t.Fatal("failed to configure logging: ", err)
+	}
+
+	// Check that the log level was set to Warn.
+	if logrus.IsLevelEnabled(logrus.InfoLevel) {
+		t.Error("expected Info to be disabled, is enabled")
+	}
+
+	// Check that the returned context's logger includes the right fields.
+	logger := dcontext.GetLogger(ctx)
+	entry, ok := logger.(*logrus.Entry)
+	if !ok {
+		t.Fatalf("expected logger to be a *logrus.Entry, is: %T", entry)
+	}
+	val, ok := entry.Data["foo"].(string)
+	if !ok || val != "bar" {
+		t.Error("field foo not configured correctly; expected 'bar' got: ", val)
+	}
+	val, ok = entry.Data["baz"].(string)
+	if !ok || val != "xyzzy" {
+		t.Error("field baz not configured correctly; expected 'xyzzy' got: ", val)
+	}
+
+	// Get a logger for a new, empty context and make sure it also has the right fields.
+	logger = dcontext.GetLogger(context.Background())
+	entry, ok = logger.(*logrus.Entry)
+	if !ok {
+		t.Fatalf("expected logger to be a *logrus.Entry, is: %T", entry)
+	}
+	val, ok = entry.Data["foo"].(string)
+	if !ok || val != "bar" {
+		t.Error("field foo not configured correctly; expected 'bar' got: ", val)
+	}
+	val, ok = entry.Data["baz"].(string)
+	if !ok || val != "xyzzy" {
+		t.Error("field baz not configured correctly; expected 'xyzzy' got: ", val)
+	}
 }
