@@ -6,14 +6,15 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/gorilla/handlers"
+	"github.com/opencontainers/go-digest"
+
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/api/errcode"
 	v2 "github.com/distribution/distribution/v3/registry/api/v2"
 	"github.com/distribution/distribution/v3/registry/storage"
-	"github.com/gorilla/handlers"
-	"github.com/opencontainers/go-digest"
 )
 
 // blobUploadDispatcher constructs and returns the blob upload handler for the
@@ -30,9 +31,9 @@ func blobUploadDispatcher(ctx *Context, r *http.Request) http.Handler {
 	}
 
 	if !ctx.readOnly {
-		handler[http.MethodPost] = http.HandlerFunc(buh.StartBlobUpload)
+		handler[http.MethodPost] = http.HandlerFunc(buh.PostBlobData)
 		handler[http.MethodPatch] = http.HandlerFunc(buh.PatchBlobData)
-		handler[http.MethodPut] = http.HandlerFunc(buh.PutBlobUploadComplete)
+		handler[http.MethodPut] = http.HandlerFunc(buh.BlobUploadComplete)
 		handler[http.MethodDelete] = http.HandlerFunc(buh.CancelBlobUpload)
 	}
 
