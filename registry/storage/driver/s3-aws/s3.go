@@ -123,6 +123,8 @@ type DriverParameters struct {
 	SessionToken                string
 	UseDualStack                bool
 	Accelerate                  bool
+	LogS3APIRequests            bool
+	LogS3APIResponseHeaders     map[string]string
 }
 
 func init() {
@@ -496,6 +498,8 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 		fmt.Sprint(sessionToken),
 		useDualStackBool,
 		accelerateBool,
+		logS3APIRequestsBool,
+		logS3APIResponseHeadersMap,
 	}
 
 	return New(params)
@@ -681,28 +685,6 @@ func (d *driver) logS3Operation(ctx context.Context) request.NamedHandler {
 	}
 }
 
-// setContentLengthHandlerHame is used to identify the handler used set the
-// ContentLength field on request data output types that support it.
-const setContentLengthHandlerName = "docker.storage-driver.s3.set-content-length"
-
-// setContentLength is used to set the ContentLength field on request data
-// output types that support it.
-var setContentLength = request.NamedHandler{
-	Name: setContentLengthHandlerName,
-	Fn: func(r *request.Request) {
-		switch v := r.Data.(type) {
-		case *s3.HeadObjectOutput:
-			if r.HTTPResponse.ContentLength > 0 {
-				v.SetContentLength(r.HTTPResponse.ContentLength)
-			}
-		case *s3.GetObjectOutput:
-			if r.HTTPResponse.ContentLength > 0 {
-				v.SetContentLength(r.HTTPResponse.ContentLength)
-			}
-		}
-	},
-}
-
 func (d *driver) s3Client(ctx context.Context) *s3.S3 {
 	s := d.S3
 
@@ -711,7 +693,6 @@ func (d *driver) s3Client(ctx context.Context) *s3.S3 {
 		r := d.logS3Operation(ctx)
 		s.Client.Handlers.Complete.PushBackNamed(r)
 	}
-	s.Client.Handlers.Complete.PushBackNamed(setContentLength)
 
 	return s
 }
@@ -771,6 +752,7 @@ func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.Read
 // Writer returns a FileWriter which will store the content written to it
 // at the location designated by "path" after the call to Commit.
 func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (storagedriver.FileWriter, error) {
+	s := d.s3Client(ctx)
 	key := d.s3Path(path)
 	if !appendParam {
 		// TODO (brianbland): cancel other uploads at this path
@@ -788,13 +770,20 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 		}
 		return d.newWriter(key, *resp.UploadId, nil), nil
 	}
-
 	listMultipartUploadsInput := &s3.ListMultipartUploadsInput{
 		Bucket: aws.String(d.Bucket),
 		Prefix: aws.String(key),
 	}
-	for {
-		resp, err := d.S3.ListMultipartUploads(listMultipartUploadsInput)
+
+	for _, multi := range resp.Uploads {
+		if key != *multi.Key {
+			continue
+		}
+		resp, err := s.ListParts(&s3.ListPartsInput{
+			Bucket:   aws.String(d.Bucket),
+			Key:      aws.String(key),
+			UploadId: multi.UploadId,
+		})
 		if err != nil {
 			return nil, parseError(path, err)
 		}
@@ -851,9 +840,32 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 // Stat retrieves the FileInfo for the given path, including the current size
 // in bytes and the creation time.
 func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo, error) {
-	resp, err := d.S3.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+	s := d.s3Client(ctx)
+
+	fi := storagedriver.FileInfoFields{
+		Path: path,
+	}
+
+	headResp, err := s.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(d.Bucket),
 		Key:    aws.String(d.s3Path(path)),
+	})
+	if err == nil {
+		if headResp.ContentLength != nil {
+			fi.Size = *headResp.ContentLength
+		}
+		if headResp.LastModified != nil {
+			fi.ModTime = *headResp.LastModified
+		}
+
+		return storagedriver.FileInfoInternal{FileInfoFields: fi}, nil
+	}
+
+	resp, err := s.ListObjectsWithContext(ctx, &s3.ListObjectsInput{
+
+		Bucket:  aws.String(d.Bucket),
+		Prefix:  aws.String(d.s3Path(path)),
+		MaxKeys: aws.Int64(1),
 	})
 	if err != nil {
 		if err, ok := err.(awserr.Error); ok && err.Code() == s3.ErrCodeNoSuchKey {
@@ -917,7 +929,7 @@ func (d *driver) List(ctx context.Context, opath string) ([]string, error) {
 		}
 
 		if *resp.IsTruncated {
-			resp, err = d.S3.ListObjectsV2(&s3.ListObjectsV2Input{
+			resp, err = s.ListObjectsV2(&s3.ListObjectsV2Input{
 				Bucket:            aws.String(d.Bucket),
 				Prefix:            aws.String(d.s3Path(path)),
 				Delimiter:         aws.String("/"),
@@ -1057,9 +1069,10 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		Prefix: aws.String(s3Path),
 	}
 
+	s := d.s3Client(ctx)
 	for {
 		// list all the objects
-		resp, err := d.S3.ListObjectsV2(listObjectsInput)
+		resp, err := s.ListObjectsV2(listObjectsInput)
 
 		// resp.Contents can only be empty on the first call
 		// if there were no more results to return after the first call, resp.IsTruncated would have been false
@@ -1122,12 +1135,27 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		}
 	}
 
+	// need to chunk objects into groups of 1000 per s3 restrictions
+	total := len(s3Objects)
+	for i := 0; i < total; i += 1000 {
+		_, err := s.DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(d.Bucket),
+			Delete: &s3.Delete{
+				Objects: s3Objects[i:min(i+1000, total)],
+				Quiet:   aws.Bool(false),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // URLFor returns a URL which may be used to retrieve the content stored at the given path.
 // May return an UnsupportedMethodErr in certain StorageDriver implementations.
 func (d *driver) URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error) {
+	s := d.s3Client(ctx)
 	methodString := http.MethodGet
 	method, ok := options["method"]
 	if ok {
@@ -1150,12 +1178,12 @@ func (d *driver) URLFor(ctx context.Context, path string, options map[string]int
 
 	switch methodString {
 	case http.MethodGet:
-		req, _ = d.S3.GetObjectRequest(&s3.GetObjectInput{
+		req, _ = s.GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(d.Bucket),
 			Key:    aws.String(d.s3Path(path)),
 		})
 	case http.MethodHead:
-		req, _ = d.S3.HeadObjectRequest(&s3.HeadObjectInput{
+		req, _ = s.HeadObjectRequest(&s3.HeadObjectInput{
 			Bucket: aws.String(d.Bucket),
 			Key:    aws.String(d.s3Path(path)),
 		})
@@ -1222,8 +1250,31 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 	// ErrSkipDir is handled by explicitly skipping over any files under the skipped directory. This may be sub-optimal
 	// for extreme edge cases but for the general use case in a registry, this is orders of magnitude
 	// faster than a more explicit recursive implementation.
-	listObjectErr := d.S3.ListObjectsV2PagesWithContext(ctx, listObjectsInput, func(objects *s3.ListObjectsV2Output, lastPage bool) bool {
+	listObjectErr := s.ListObjectsV2PagesWithContext(ctx, listObjectsInput, func(objects *s3.ListObjectsV2Output, lastPage bool) bool {
 		walkInfos := make([]storagedriver.FileInfoInternal, 0, len(objects.Contents))
+
+		var count int64
+		// KeyCount was introduced with version 2 of the GET Bucket operation in S3.
+		// Some S3 implementations don't support V2 now, so we fall back to manual
+		// calculation of the key count if required
+		if objects.KeyCount != nil {
+			count = *objects.KeyCount
+			*objectCount += *objects.KeyCount
+		} else {
+			count = int64(len(objects.Contents) + len(objects.CommonPrefixes))
+			*objectCount += count
+		}
+
+		for _, dir := range objects.CommonPrefixes {
+			commonPrefix := *dir.Prefix
+			walkInfos = append(walkInfos, walkInfoContainer{
+				prefix: dir.Prefix,
+				FileInfoFields: storagedriver.FileInfoFields{
+					IsDir: true,
+					Path:  strings.Replace(commonPrefix[:len(commonPrefix)-1], d.s3Path(""), prefix, 1),
+				},
+			})
+		}
 
 		for _, file := range objects.Contents {
 			filePath := strings.Replace(*file.Key, d.s3Path(""), prefix, 1)
