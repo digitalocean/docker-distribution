@@ -1136,16 +1136,27 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 	// ErrSkipDir is handled by explicitly skipping over any files under the skipped directory. This may be sub-optimal
 	// for extreme edge cases but for the general use case in a registry, this is orders of magnitude
 	// faster than a more explicit recursive implementation.
-	listObjectErr := s.ListObjectsV2PagesWithContext(ctx, listObjectsInput, func(objects *s3.ListObjectsV2Output, lastPage bool) bool {
+	listObjectErr := d.S3.ListObjectsV2PagesWithContext(ctx, listObjectsInput, func(objects *s3.ListObjectsV2Output, lastPage bool) bool {
 		walkInfos := make([]storagedriver.FileInfoInternal, 0, len(objects.Contents))
 
 		for _, file := range objects.Contents {
-			// empty prefixes are listed as objects inside its own prefix.
-			// https://docs.aws.amazon.com/AmazonS3/latest/user-guide/using-folders.html
-			if strings.HasSuffix(*file.Key, "/") {
-				continue
+			filePath := strings.Replace(*file.Key, d.s3Path(""), prefix, 1)
+
+			// get a list of all inferred directories between the previous directory and this file
+			dirs := directoryDiff(prevDir, filePath)
+			if len(dirs) > 0 {
+				for _, dir := range dirs {
+					walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
+						FileInfoFields: storagedriver.FileInfoFields{
+							IsDir: true,
+							Path:  dir,
+						},
+					})
+					prevDir = dir
+				}
 			}
-			walkInfos = append(walkInfos, walkInfoContainer{
+
+			walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
 				FileInfoFields: storagedriver.FileInfoFields{
 					IsDir:   false,
 					Size:    *file.Size,
