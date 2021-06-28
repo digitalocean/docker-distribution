@@ -1195,7 +1195,7 @@ func (d *driver) URLFor(ctx context.Context, path string, options map[string]int
 }
 
 // Walk traverses a filesystem defined within driver, starting
-// from the given path, calling f on each file and directory
+// from the given path, calling f on each file
 func (d *driver) Walk(ctx context.Context, from string, f storagedriver.WalkFn) error {
 	path := from
 	if !strings.HasSuffix(path, "/") {
@@ -1208,7 +1208,7 @@ func (d *driver) Walk(ctx context.Context, from string, f storagedriver.WalkFn) 
 	}
 
 	var objectCount int64
-	if err := d.doWalk(ctx, &objectCount, d.s3Path(path), prefix, true, f); err != nil {
+	if err := d.doWalk(ctx, &objectCount, d.s3Path(path), prefix, f); err != nil {
 		return err
 	}
 
@@ -1220,72 +1220,19 @@ func (d *driver) Walk(ctx context.Context, from string, f storagedriver.WalkFn) 
 	return nil
 }
 
-// WalkFiles traverses a filesystem defined within driver, starting
-// from the given path, calling f on each file
-func (d *driver) WalkFiles(ctx context.Context, from string, f storagedriver.WalkFn) error {
-	path := from
-	if !strings.HasSuffix(path, "/") {
-		path = path + "/"
-	}
+func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, prefix string, f storagedriver.WalkFn) error {
+	var (
+		retError error
+		// the most recent directory walked for de-duping
+		prevDir string
+		// the most recent skip directory to avoid walking over undesirable files
+		prevSkipDir string
+	)
 
-	prefix := ""
-	if d.s3Path("") == "" {
-		prefix = "/"
-	}
-
-	var objectCount int64
-	if err := d.doWalk(ctx, &objectCount, d.s3Path(path), prefix, false, f); err != nil {
-		return err
-	}
-
-	// S3 doesn't have the concept of empty directories, so it'll return path not found if there are no objects
-	if objectCount == 0 {
-		return storagedriver.PathNotFoundError{Path: from}
-	}
-
-	return nil
-}
-
-type walkInfoContainer struct {
-	storagedriver.FileInfoFields
-	prefix *string
-}
-
-// Path provides the full path of the target of this file info.
-func (wi walkInfoContainer) Path() string {
-	return wi.FileInfoFields.Path
-}
-
-// Size returns current length in bytes of the file. The return value can
-// be used to write to the end of the file at path. The value is
-// meaningless if IsDir returns true.
-func (wi walkInfoContainer) Size() int64 {
-	return wi.FileInfoFields.Size
-}
-
-// ModTime returns the modification time for the file. For backends that
-// don't have a modification time, the creation time should be returned.
-func (wi walkInfoContainer) ModTime() time.Time {
-	return wi.FileInfoFields.ModTime
-}
-
-// IsDir returns true if the path is a directory.
-func (wi walkInfoContainer) IsDir() bool {
-	return wi.FileInfoFields.IsDir
-}
-
-func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, prefix string, walkDirectories bool, f storagedriver.WalkFn) error {
-	var retError error
-
-	delimiter := ""
-	if walkDirectories {
-		delimiter = "/"
-	}
 	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:    aws.String(d.Bucket),
-		Prefix:    aws.String(path),
-		Delimiter: aws.String(delimiter),
-		MaxKeys:   aws.Int64(listMax),
+		Bucket:  aws.String(d.Bucket),
+		Prefix:  aws.String(path),
+		MaxKeys: aws.Int64(listMax),
 	}
 
 	s := d.s3Client(parentCtx)
@@ -1305,48 +1252,7 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 	listObjectErr := s.ListObjectsV2PagesWithContext(ctx, listObjectsInput, func(objects *s3.ListObjectsV2Output, lastPage bool) bool {
 		walkInfos := make([]storagedriver.FileInfoInternal, 0, len(objects.Contents))
 
-		var count int64
-		// KeyCount was introduced with version 2 of the GET Bucket operation in S3.
-		// Some s3 implementations (looking at you ceph/rgw) have a buggy
-		// implementation so we intionally avoid ever using it, preferring instead
-		// to calculate the count from the Contents and CommonPrefixes fields of
-		// the s3.ListObjectsV2Output. we retain the commented out KeyCount code
-		// and this comment so as not to forget this problem moving forward.
-		//
-		// count = *objects.KeyCount
-		// *objectCount += *objects.KeyCount
-
-		count = int64(len(objects.Contents) + len(objects.CommonPrefixes))
-		*objectCount += count
-
-		for _, dir := range objects.CommonPrefixes {
-			commonPrefix := *dir.Prefix
-			walkInfos = append(walkInfos, walkInfoContainer{
-				prefix: dir.Prefix,
-				FileInfoFields: storagedriver.FileInfoFields{
-					IsDir: true,
-					Path:  strings.Replace(commonPrefix[:len(commonPrefix)-1], d.s3Path(""), prefix, 1),
-				},
-			})
-		}
-
 		for _, file := range objects.Contents {
-			filePath := strings.Replace(*file.Key, d.s3Path(""), prefix, 1)
-
-			// get a list of all inferred directories between the previous directory and this file
-			dirs := directoryDiff(prevDir, filePath)
-			if len(dirs) > 0 {
-				for _, dir := range dirs {
-					walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
-						FileInfoFields: storagedriver.FileInfoFields{
-							IsDir: true,
-							Path:  dir,
-						},
-					})
-					prevDir = dir
-				}
-			}
-
 			walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
 				FileInfoFields: storagedriver.FileInfoFields{
 					IsDir:   false,
@@ -1363,10 +1269,36 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 				continue
 			}
 
-			if walkInfo.IsDir() && walkDirectories {
-				if err := d.doWalk(ctx, objectCount, *walkInfo.prefix, prefix, walkDirectories, f); err != nil {
+			dir := filepath.Dir(walkInfo.Path())
+			if dir != prevDir {
+				prevDir = dir
+				walkDirInfo := storagedriver.FileInfoInternal{
+					FileInfoFields: storagedriver.FileInfoFields{
+						IsDir: true,
+						Path:  dir,
+					},
+				}
+				err := f(walkDirInfo)
+				*objectCount++
+
+				if err != nil {
+					if err == storagedriver.ErrSkipDir {
+						prevSkipDir = dir
+						continue
+					}
 					retError = err
 					return false
+				}
+				retError = err
+				return false
+			}
+
+			err := f(walkInfo)
+			*objectCount++
+
+			if err != nil {
+				if err == storagedriver.ErrSkipDir {
+					break
 				}
 				retError = err
 				return false
