@@ -2,8 +2,7 @@ package s3
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/distribution/distribution/v3/registry/storage/driver/conformance"
 
 	"gopkg.in/check.v1"
 
@@ -152,7 +153,7 @@ func init() {
 
 	// Skip S3 storage driver tests if environment variable parameters are not provided
 	skipS3 = func() string {
-		if accessKey == "" || secretKey == "" || region == "" || bucket == "" || encrypt == "" {
+		if accessKey == "" || secretKey == "" || bucket == "" || encrypt == "" {
 			return "Must set AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION, S3_BUCKET, and S3_ENCRYPT to run S3 tests"
 		}
 		return ""
@@ -731,6 +732,28 @@ func TestWalk(t *testing.T) {
 			}
 			compareWalked(t, tc.expected, walked)
 		})
+	}
+}
+
+func TestConformance(t *testing.T) {
+	if skipS3() != "" {
+		t.Skip(skipS3())
+	}
+
+	rootDir, err := ioutil.TempDir("", "driver-")
+	if err != nil {
+		t.Fatalf("unexpected error creating temporary directory: %v", err)
+	}
+	defer os.Remove(rootDir)
+
+	standardDriver, err := s3DriverConstructor(rootDir, s3.StorageClassStandard)
+	if err != nil {
+		t.Fatalf("unexpected error creating driver with standard storage: %v", err)
+	}
+
+	err = conformance.Run(standardDriver, t)
+	if err != nil {
+		t.Fatalf("conformance failed: %v", err)
 	}
 }
 
