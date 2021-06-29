@@ -1372,10 +1372,16 @@ func directoryDiff(prev, current string) []string {
 		if parent == "/" || parent == prev || strings.HasPrefix(prev, parent) {
 			break
 		}
-		parents = append(parents, parent)
+		paths = append(paths, parent)
 	}
-	sort.Sort(sort.StringSlice(parents))
-	return parents
+	reverse(paths)
+	return paths
+}
+
+func reverse(s []string) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
 }
 
 func (d *driver) s3Path(path string) string {
