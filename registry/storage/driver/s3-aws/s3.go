@@ -1228,6 +1228,7 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 		// the most recent skip directory to avoid walking over undesirable files
 		prevSkipDir string
 	)
+	prevDir = prefix + path
 
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(d.Bucket),
@@ -1253,6 +1254,22 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 		walkInfos := make([]storagedriver.FileInfoInternal, 0, len(objects.Contents))
 
 		for _, file := range objects.Contents {
+			filePath := strings.Replace(*file.Key, d.s3Path(""), prefix, 1)
+
+			// get a list of all inferred directories skipped between the previous directory and this file
+			dirs := directoryDiff(prevDir, filePath)
+			if len(dirs) > 0 {
+				for _, dir := range dirs {
+					walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
+						FileInfoFields: storagedriver.FileInfoFields{
+							IsDir: true,
+							Path:  dir,
+						},
+					})
+					prevDir = dir
+				}
+			}
+
 			walkInfos = append(walkInfos, storagedriver.FileInfoInternal{
 				FileInfoFields: storagedriver.FileInfoFields{
 					IsDir:   false,
@@ -1298,7 +1315,12 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 
 			if err != nil {
 				if err == storagedriver.ErrSkipDir {
-					break
+					if walkInfo.IsDir() {
+						prevSkipDir = walkInfo.Path()
+						continue
+					}
+					// is file, stop gracefully
+					return false
 				}
 				retError = err
 				return false
@@ -1350,16 +1372,10 @@ func directoryDiff(prev, current string) []string {
 		if parent == "/" || parent == prev || strings.HasPrefix(prev, parent) {
 			break
 		}
-		paths = append(paths, parent)
+		parents = append(parents, parent)
 	}
-	reverse(paths)
-	return paths
-}
-
-func reverse(s []string) {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
+	sort.Sort(sort.StringSlice(parents))
+	return parents
 }
 
 func (d *driver) s3Path(path string) string {
