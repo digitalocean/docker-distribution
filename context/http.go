@@ -234,6 +234,13 @@ func (ctx *httpRequestContext) Value(key interface{}) interface{} {
 			if ct != "" {
 				return ct
 			}
+		case "cf-ray":
+			ct := ctx.r.Header.Get("CF-RAY")
+			if ct != "" {
+				return ct
+			}
+		default:
+			// no match; fall back to standard behavior below
 		}
 	}
 
