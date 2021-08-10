@@ -85,7 +85,7 @@ var validRegions = map[string]struct{}{}
 // validObjectACLs contains known s3 object Acls
 var validObjectACLs = map[string]struct{}{}
 
-//DriverParameters A struct that encapsulates all of the driver parameters after all values have been set
+// DriverParameters A struct that encapsulates all of the driver parameters after all values have been set
 type DriverParameters struct {
 	// S3 is an optional parameter. If specified, it will use the existing session
 	// to construct the Driver.
@@ -1026,10 +1026,10 @@ ListLoop:
 			return err
 		}
 		if output.Errors != nil && len(output.Errors) > 0 {
-			// ideally all errors would be returned in some way
-			// until then, at least pass back the first error code
+			// ideally all errors would be returned in some way turn errors.New(*oErr.Code)
+			// until then, at least pass back the first error message and code
 			oErr := output.Errors[0]
-			return errors.New(*oErr.Code)
+			return errors.New(fmt.Sprintf("%s (%s)", *oErr.Message, *oErr.Code))
 		}
 	}
 	return nil
@@ -1204,15 +1204,24 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 // the previous and current paths in sorted order.
 //
 // Eg 1 directoryDiff("/path/to/folder", "/path/to/folder/folder/file")
-//   => [ "/path/to/folder/folder" ],
+//
+//	=> [ "/path/to/folder/folder" ],
+//
 // Eg 2 directoryDiff("/path/to/folder/folder1", "/path/to/folder/folder2/file")
-//   => [ "/path/to/folder/folder2" ]
+//
+//	=> [ "/path/to/folder/folder2" ]
+//
 // Eg 3 directoryDiff("/path/to/folder/folder1/file", "/path/to/folder/folder2/file")
-//  => [ "/path/to/folder/folder2" ]
+//
+//	=> [ "/path/to/folder/folder2" ]
+//
 // Eg 4 directoryDiff("/path/to/folder/folder1/file", "/path/to/folder/folder2/folder1/file")
-//   => [ "/path/to/folder/folder2", "/path/to/folder/folder2/folder1" ]
+//
+//	=> [ "/path/to/folder/folder2", "/path/to/folder/folder2/folder1" ]
+//
 // Eg 5 directoryDiff("/", "/path/to/folder/folder/file")
-//   => [ "/path", "/path/to", "/path/to/folder", "/path/to/folder/folder" ],
+//
+//	=> [ "/path", "/path/to", "/path/to/folder", "/path/to/folder/folder" ],
 func directoryDiff(prev, current string) []string {
 	var paths []string
 
