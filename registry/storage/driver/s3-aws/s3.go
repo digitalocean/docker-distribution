@@ -1156,7 +1156,7 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 
 	// need to chunk objects into groups of 1000 per s3 restrictions
 	for i := 0; i < total; i += 1000 {
-		_, err := s.DeleteObjects(&s3.DeleteObjectsInput{
+		output, err := s.DeleteObjects(&s3.DeleteObjectsInput{
 			Bucket: aws.String(d.Bucket),
 			Delete: &s3.Delete{
 				Objects: s3Objects[i:min(i+1000, total)],
@@ -1165,6 +1165,12 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		})
 		if err != nil {
 			return err
+		}
+		if output.Errors != nil && len(output.Errors) > 0 {
+			// ideally all errors would be returned in some way
+			// until then, at least pass back the first error message and code
+			oErr := output.Errors[0]
+			return errors.New(fmt.Sprintf("%s (%s)", *oErr.Message, *oErr.Code))
 		}
 	}
 	return nil
