@@ -2,12 +2,10 @@ package s3
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -277,6 +275,53 @@ func TestStorageClass(t *testing.T) {
 
 }
 
+func TestPopulate(t *testing.T) {
+
+	if skipS3() != "" {
+		t.Skip(skipS3())
+	}
+
+	rootDir, err := ioutil.TempDir("", "driver-")
+	if err != nil {
+		t.Fatalf("unexpected error creating temporary directory: %v", err)
+	}
+	defer os.Remove(rootDir)
+
+	driver, err := s3DriverConstructor(rootDir, s3.StorageClassStandard)
+	if err != nil {
+		t.Fatalf("unexpected error creating driver with standard storage: %v", err)
+	}
+
+	var objs = []string{
+		"/file1",
+		"/file1-2",
+		"/file1/2",
+		"/folder1/file1",
+		"/folder2/file1",
+		"/folder3/file1",
+		"/folder3/subfolder1/subfolder1/file1",
+		"/folder3/subfolder2/subfolder1/file1",
+		"/folder4/file1",
+		"/folder1-v2/file1",
+		"/folder1-v2/subfolder1/file1",
+	}
+
+	init := func() []string {
+		// init file structure matching objs above
+		var created []string
+		for _, path := range objs {
+			err := driver.PutContent(context.Background(), path, []byte("content "+path))
+			if err != nil {
+				fmt.Printf("unable to init file %s: %s\n", path, err)
+				continue
+			}
+			created = append(created, path)
+		}
+		return created
+	}
+	init()
+}
+
 func TestDelete(t *testing.T) {
 	if skipS3() != "" {
 		t.Skip(skipS3())
@@ -291,6 +336,25 @@ func TestDelete(t *testing.T) {
 	driver, err := s3DriverConstructor(rootDir, s3.StorageClassStandard)
 	if err != nil {
 		t.Fatalf("unexpected error creating driver with standard storage: %v", err)
+	}
+
+	var objs = []string{
+		"/file1",
+		"/file1-2",
+		"/file1/2",
+		"/folder1/file1",
+		"/folder2/file1",
+		"/folder3/file1",
+		"/folder3/subfolder1/subfolder1/file1",
+		"/folder3/subfolder2/subfolder1/file1",
+		"/folder4/file1",
+		"/folder1-v2/file1",
+		"/folder1-v2/subfolder1/file1",
+	}
+	// objects to skip auto-created test case
+	var skipCase = map[string]bool{
+		// special case where deleting "/file1" also deletes "/file1/2" is tested explicitly
+		"/file1": true,
 	}
 
 	type errFn func(error) bool
@@ -321,20 +385,6 @@ func TestDelete(t *testing.T) {
 			return true
 		}
 		return false
-	}
-
-	var objs = []string{
-		"/file1",
-		"/file1-2",
-		"/file1/2",
-		"/folder1/file1",
-		"/folder2/file1",
-		"/folder3/file1",
-		"/folder3/subfolder1/subfolder1/file1",
-		"/folder3/subfolder2/subfolder1/file1",
-		"/folder4/file1",
-		"/folder1-v2/file1",
-		"/folder1-v2/subfolder1/file1",
 	}
 
 	tcs := []testCase{
@@ -390,12 +440,7 @@ func TestDelete(t *testing.T) {
 		},
 	}
 
-	// objects to skip auto-created test case
-	var skipCase = map[string]bool{
-		// special case where deleting "/file1" also deletes "/file1/2" is tested explicitly
-		"/file1": true,
-	}
-	// create a test case for each file
+	// init a test case for each file
 	for _, path := range objs {
 		if skipCase[path] {
 			continue
@@ -437,11 +482,11 @@ func TestDelete(t *testing.T) {
 			t.Fatalf("cleanup failed: %s", lastErr)
 		}
 	}
-	defer cleanup(objs)
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			objs := init()
+			defer cleanup(objs)
 
 			err := driver.Delete(context.Background(), tc.delete)
 
@@ -494,167 +539,8 @@ func TestDelete(t *testing.T) {
 			}
 
 			if len(issues) > 0 {
-				t.Fatalf(strings.Join(issues, "; \n\t"))
+				t.Fatalf(strings.Join(issues, "; "))
 			}
-		})
-	}
-}
-
-func TestWalk(t *testing.T) {
-	if skipS3() != "" {
-		t.Skip(skipS3())
-	}
-
-	rootDir, err := ioutil.TempDir("", "driver-")
-	if err != nil {
-		t.Fatalf("unexpected error creating temporary directory: %v", err)
-	}
-	defer os.Remove(rootDir)
-
-	driver, err := s3DriverConstructor(rootDir, s3.StorageClassStandard)
-	if err != nil {
-		t.Fatalf("unexpected error creating driver with standard storage: %v", err)
-	}
-
-	var fileset = []string{
-		"/file1",
-		"/folder1/file1",
-		"/folder2/file1",
-		"/folder3/subfolder1/subfolder1/file1",
-		"/folder3/subfolder2/subfolder1/file1",
-		"/folder4/file1",
-	}
-
-	// create file structure matching fileset above
-	var created []string
-	for _, path := range fileset {
-		err := driver.PutContent(context.Background(), path, []byte("content "+path))
-		if err != nil {
-			fmt.Printf("unable to create file %s: %s\n", path, err)
-			continue
-		}
-		created = append(created, path)
-	}
-
-	// cleanup
-	defer func() {
-		var lastErr error
-		for _, path := range created {
-			err := driver.Delete(context.Background(), path)
-			if err != nil {
-				_ = fmt.Errorf("cleanup failed for path %s: %s", path, err)
-				lastErr = err
-			}
-		}
-		if lastErr != nil {
-			t.Fatalf("cleanup failed: %s", err)
-		}
-	}()
-
-	tcs := []struct {
-		name     string
-		fn       storagedriver.WalkFn
-		from     string
-		expected []string
-		err      bool
-	}{
-		{
-			name: "walk all",
-			fn:   func(fileInfo storagedriver.FileInfo) error { return nil },
-			expected: []string{
-				"/file1",
-				"/folder1",
-				"/folder1/file1",
-				"/folder2",
-				"/folder2/file1",
-				"/folder3",
-				"/folder3/subfolder1",
-				"/folder3/subfolder1/subfolder1",
-				"/folder3/subfolder1/subfolder1/file1",
-				"/folder3/subfolder2",
-				"/folder3/subfolder2/subfolder1",
-				"/folder3/subfolder2/subfolder1/file1",
-				"/folder4",
-				"/folder4/file1",
-			},
-		},
-		{
-			name: "skip directory",
-			fn: func(fileInfo storagedriver.FileInfo) error {
-				if fileInfo.Path() == "/folder3" {
-					return storagedriver.ErrSkipDir
-				}
-				if strings.Contains(fileInfo.Path(), "/folder3") {
-					t.Fatalf("skipped dir %s and should not walk %s", "/folder3", fileInfo.Path())
-				}
-				return nil
-			},
-			expected: []string{
-				"/file1",
-				"/folder1",
-				"/folder1/file1",
-				"/folder2",
-				"/folder2/file1",
-				"/folder3",
-				// folder 3 contents skipped
-				"/folder4",
-				"/folder4/file1",
-			},
-		},
-		{
-			name: "stop early",
-			fn: func(fileInfo storagedriver.FileInfo) error {
-				if fileInfo.Path() == "/folder1/file1" {
-					return storagedriver.ErrSkipDir
-				}
-				return nil
-			},
-			expected: []string{
-				"/file1",
-				"/folder1",
-				"/folder1/file1",
-				// stop early
-			},
-			err: false,
-		},
-		{
-			name: "error",
-			fn: func(fileInfo storagedriver.FileInfo) error {
-				return errors.New("foo")
-			},
-			expected: []string{
-				"/file1",
-			},
-			err: true,
-		},
-		{
-			name: "from folder",
-			fn:   func(fileInfo storagedriver.FileInfo) error { return nil },
-			expected: []string{
-				"/folder1",
-				"/folder1/file1",
-			},
-			from: "/folder1",
-		},
-	}
-
-	for _, tc := range tcs {
-		var walked []string
-		if tc.from == "" {
-			tc.from = "/"
-		}
-		t.Run(tc.name, func(t *testing.T) {
-			err := driver.Walk(context.Background(), tc.from, func(fileInfo storagedriver.FileInfo) error {
-				walked = append(walked, fileInfo.Path())
-				return tc.fn(fileInfo)
-			})
-			if tc.err && err == nil {
-				t.Fatalf("expected err")
-			}
-			if !tc.err && err != nil {
-				t.Fatalf(err.Error())
-			}
-			compareWalked(t, tc.expected, walked)
 		})
 	}
 }
