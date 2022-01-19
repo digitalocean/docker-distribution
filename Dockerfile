@@ -34,17 +34,10 @@ RUN --mount=type=bind,rw \
     --files="LICENSE" \
     --files="README.md"
 
-RUN set -ex \
-    && apk add --no-cache make git file
-
-WORKDIR $DISTRIBUTION_DIR
-COPY . $DISTRIBUTION_DIR
-RUN CGO_ENABLED=0 make PREFIX=/go clean binaries && file ./bin/registry | grep "statically linked"
-
-FROM alpine:3.11
-
-RUN set -ex \
-    && apk add --no-cache ca-certificates apache2-utils
+FROM scratch AS artifacts
+COPY --from=build /out/*.tar.gz /
+COPY --from=build /out/*.zip /
+COPY --from=build /out/*.sha256 /
 
 FROM scratch AS binary
 COPY --from=build /usr/local/bin/registry* /
