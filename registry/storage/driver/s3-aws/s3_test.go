@@ -881,9 +881,9 @@ func TestListObjectsV2(t *testing.T) {
 		t.Fatalf("unexpected list result")
 	}
 
-	var walkPathes []string
+	var walkPaths []string
 	if err := d.Walk(ctx, prefix, func(fileInfo storagedriver.FileInfo) error {
-		walkPathes = append(walkPathes, fileInfo.Path())
+		walkPaths = append(walkPaths, fileInfo.Path())
 		if fileInfo.Path() == path.Dir(subDirPath) {
 			if !fileInfo.IsDir() {
 				t.Fatalf("unexpected walking file info")
@@ -899,10 +899,10 @@ func TestListObjectsV2(t *testing.T) {
 	}
 
 	subPaths = append(subPaths, subDirPath)
-	sort.Strings(walkPathes)
+	sort.Strings(walkPaths)
 	sort.Strings(subPaths)
-	if !reflect.DeepEqual(subPaths, walkPathes) {
-		t.Fatalf("unexpected walking pathes")
+	if !reflect.DeepEqual(subPaths, walkPaths) {
+		t.Fatalf("unexpected walking paths")
 	}
 
 	if err := d.Delete(ctx, prefix); err != nil {
