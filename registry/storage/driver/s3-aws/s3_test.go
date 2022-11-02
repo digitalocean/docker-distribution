@@ -27,27 +27,32 @@ import (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { check.TestingT(t) }
 
-var s3DriverConstructor func(rootDirectory, storageClass string) (*Driver, error)
-var skipS3 func() string
+var (
+	s3DriverConstructor func(rootDirectory, storageClass string) (*Driver, error)
+	skipS3              func() string
+)
 
 func init() {
-	accessKey := os.Getenv("AWS_ACCESS_KEY")
-	secretKey := os.Getenv("AWS_SECRET_KEY")
-	bucket := os.Getenv("S3_BUCKET")
-	encrypt := os.Getenv("S3_ENCRYPT")
-	keyID := os.Getenv("S3_KEY_ID")
-	secure := os.Getenv("S3_SECURE")
-	skipVerify := os.Getenv("S3_SKIP_VERIFY")
-	v4Auth := os.Getenv("S3_V4_AUTH")
-	region := os.Getenv("AWS_REGION")
-	objectACL := os.Getenv("S3_OBJECT_ACL")
+	var (
+		accessKey        = os.Getenv("AWS_ACCESS_KEY")
+		secretKey        = os.Getenv("AWS_SECRET_KEY")
+		bucket           = os.Getenv("S3_BUCKET")
+		encrypt          = os.Getenv("S3_ENCRYPT")
+		keyID            = os.Getenv("S3_KEY_ID")
+		secure           = os.Getenv("S3_SECURE")
+		skipVerify       = os.Getenv("S3_SKIP_VERIFY")
+		v4Auth           = os.Getenv("S3_V4_AUTH")
+		region           = os.Getenv("AWS_REGION")
+		objectACL        = os.Getenv("S3_OBJECT_ACL")
+		regionEndpoint   = os.Getenv("REGION_ENDPOINT")
+		forcePathStyle   = os.Getenv("AWS_S3_FORCE_PATH_STYLE")
+		sessionToken     = os.Getenv("AWS_SESSION_TOKEN")
+		useDualStack     = os.Getenv("S3_USE_DUALSTACK")
+		combineSmallPart = os.Getenv("MULTIPART_COMBINE_SMALL_PART")
+		accelerate       = os.Getenv("S3_ACCELERATE")
+	)
+
 	root, err := ioutil.TempDir("", "driver-")
-	regionEndpoint := os.Getenv("REGION_ENDPOINT")
-	forcePathStyle := os.Getenv("AWS_S3_FORCE_PATH_STYLE")
-	sessionToken := os.Getenv("AWS_SESSION_TOKEN")
-	useDualStack := os.Getenv("S3_USE_DUALSTACK")
-	combineSmallPart := os.Getenv("MULTIPART_COMBINE_SMALL_PART")
-	accelerate := os.Getenv("S3_ACCELERATE")
 	if err != nil {
 		panic(err)
 	}
@@ -410,6 +415,20 @@ func TestDelete(t *testing.T) {
 		return false
 	}
 
+	objs := []string{
+		"/file1",
+		"/file1-2",
+		"/file1/2",
+		"/folder1/file1",
+		"/folder2/file1",
+		"/folder3/file1",
+		"/folder3/subfolder1/subfolder1/file1",
+		"/folder3/subfolder2/subfolder1/file1",
+		"/folder4/file1",
+		"/folder1-v2/file1",
+		"/folder1-v2/subfolder1/file1",
+	}
+
 	tcs := []testCase{
 		{
 			// special case where a given path is a file and has subpaths
@@ -463,7 +482,12 @@ func TestDelete(t *testing.T) {
 		},
 	}
 
-	// init a test case for each file
+	// objects to skip auto-created test case
+	skipCase := map[string]bool{
+		// special case where deleting "/file1" also deletes "/file1/2" is tested explicitly
+		"/file1": true,
+	}
+	// create a test case for each file
 	for _, path := range objs {
 		if skipCase[path] {
 			continue
@@ -584,7 +608,7 @@ func TestWalk(t *testing.T) {
 		t.Fatalf("unexpected error creating driver with standard storage: %v", err)
 	}
 
-	var fileset = []string{
+	fileset := []string{
 		"/file1",
 		"/folder1/file1",
 		"/folder2/file1",

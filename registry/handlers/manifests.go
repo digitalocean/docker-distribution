@@ -481,7 +481,6 @@ func (imh *manifestHandler) applyResourcePolicy(manifest distribution.Manifest) 
 	}
 
 	return nil
-
 }
 
 // DeleteManifest removes the manifest with the given digest or the tag with the given name from the registry.

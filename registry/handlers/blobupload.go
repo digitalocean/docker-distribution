@@ -79,7 +79,6 @@ func (buh *blobUploadHandler) StartBlobUpload(w http.ResponseWriter, r *http.Req
 
 	blobs := buh.Repository.Blobs(buh)
 	upload, err := blobs.Create(buh, options...)
-
 	if err != nil {
 		if ebm, ok := err.(distribution.ErrBlobMounted); ok {
 			if err := buh.writeBlobCreatedHeaders(w, ebm.Descriptor); err != nil {
@@ -241,7 +240,6 @@ func (buh *blobUploadHandler) BlobUploadComplete(w http.ResponseWriter, r *http.
 		// really set the mediatype. For now, we can let the backend take care
 		// of this.
 	})
-
 	if err != nil {
 		switch err := err.(type) {
 		case distribution.ErrBlobInvalidDigest:
