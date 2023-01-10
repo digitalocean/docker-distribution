@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/distribution/distribution/v3"
+	distv3 "github.com/distribution/distribution/v3"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
@@ -102,7 +102,7 @@ func (d Descriptor) Descriptor() Descriptor {
 type BlobStatter interface {
 	// Stat provides metadata about a blob identified by the digest. If the
 	// blob is unknown to the describer, ErrBlobUnknown will be returned.
-	Stat(ctx context.Context, dgst digest.Digest) (v3.Descriptor, error)
+	Stat(ctx context.Context, dgst digest.Digest) (distv3.Descriptor, error)
 }
 
 // BlobDeleter enables deleting blobs from storage.
