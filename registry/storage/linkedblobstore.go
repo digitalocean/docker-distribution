@@ -10,6 +10,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
+	distributionv3 "github.com/distribution/distribution/v3"
+
 	"github.com/digitalocean/docker-distribution"
 	dcontext "github.com/digitalocean/docker-distribution/context"
 	"github.com/digitalocean/docker-distribution/reference"
@@ -46,7 +48,7 @@ type linkedBlobStore struct {
 
 var _ distribution.BlobStore = &linkedBlobStore{}
 
-func (lbs *linkedBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+func (lbs *linkedBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distributionv3.Descriptor, error) {
 	return lbs.blobStore.statter.Stat(ctx, dgst)
 }
 
