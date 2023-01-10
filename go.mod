@@ -1,4 +1,4 @@
-module github.com/distribution/distribution/v3
+module github.com/distribution/distribution
 
 go 1.18
 
