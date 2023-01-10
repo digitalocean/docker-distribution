@@ -10,8 +10,6 @@ import (
 	dcontext "github.com/digitalocean/docker-distribution/context"
 	"github.com/digitalocean/docker-distribution/registry/storage/driver"
 
-	distv3 "github.com/distribution/distribution/v3"
-
 	distribution "github.com/digitalocean/docker-distribution"
 )
 
@@ -24,7 +22,7 @@ type blobStore struct {
 	statter distribution.BlobStatter
 }
 
-var _ distv3.BlobProvider = &blobStore{}
+var _ distribution.BlobProvider = &blobStore{}
 
 // Get implements the BlobReadService.Get call.
 func (bs *blobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
