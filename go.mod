@@ -1,4 +1,4 @@
-module github.com/distribution/distribution
+module github.com/digitalocean/docker-distribution
 
 go 1.18
 
