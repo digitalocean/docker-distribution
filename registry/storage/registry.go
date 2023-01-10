@@ -6,8 +6,6 @@ import (
 
 	"github.com/docker/libtrust"
 
-	v3dist "github.com/distribution/distribution/v3"
-
 	"github.com/digitalocean/docker-distribution"
 	"github.com/digitalocean/docker-distribution/reference"
 	"github.com/digitalocean/docker-distribution/registry/storage/cache"
@@ -188,7 +186,7 @@ func (reg *registry) Blobs() distribution.BlobEnumerator {
 	return reg.blobStore
 }
 
-func (reg *registry) BlobStatter() v3dist.BlobStatter {
+func (reg *registry) BlobStatter() distribution.BlobStatter {
 	return reg.statter
 }
 
