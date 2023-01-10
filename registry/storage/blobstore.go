@@ -5,10 +5,11 @@ import (
 	"io"
 	"path"
 
-	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
+
+	distribution "github.com/digitalocean/docker-distribution"
 )
 
 // blobStore implements the read side of the blob store interface over a
@@ -199,7 +200,6 @@ func (bs *blobStatter) Stat(ctx context.Context, dgst digest.Digest) (distributi
 		// for the specific repository.
 		MediaType: "application/octet-stream",
 		Digest:    dgst,
-		ModTime:   fi.ModTime(),
 	}, nil
 }
 
