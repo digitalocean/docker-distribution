@@ -5,9 +5,10 @@ import (
 	"io"
 	"path"
 
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
+
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver"
 
 	distribution "github.com/digitalocean/docker-distribution"
 )

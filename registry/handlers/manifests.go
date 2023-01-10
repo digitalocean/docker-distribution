@@ -11,17 +11,17 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/manifest/manifestlist"
-	"github.com/distribution/distribution/v3/manifest/ocischema"
-	"github.com/distribution/distribution/v3/manifest/schema1"
-	"github.com/distribution/distribution/v3/manifest/schema2"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/api/errcode"
-	v2 "github.com/distribution/distribution/v3/registry/api/v2"
-	"github.com/distribution/distribution/v3/registry/auth"
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/manifest/manifestlist"
+	"github.com/digitalocean/docker-distribution/manifest/ocischema"
+	"github.com/digitalocean/docker-distribution/manifest/schema1"
+	"github.com/digitalocean/docker-distribution/manifest/schema2"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/api/errcode"
+	v2 "github.com/digitalocean/docker-distribution/registry/api/v2"
+	"github.com/digitalocean/docker-distribution/registry/auth"
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
 )
 
 // These constants determine which architecture and OS to choose from a

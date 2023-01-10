@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/manifest/ocischema"
+	"github.com/digitalocean/docker-distribution"
+	"github.com/digitalocean/docker-distribution/manifest/ocischema"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )

@@ -6,19 +6,20 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/manifest"
-	"github.com/distribution/distribution/v3/manifest/schema1"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/client/auth"
-	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
-	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
-	"github.com/distribution/distribution/v3/registry/storage"
-	"github.com/distribution/distribution/v3/registry/storage/cache/memory"
-	"github.com/distribution/distribution/v3/registry/storage/driver/inmemory"
-	"github.com/distribution/distribution/v3/testutil"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/digitalocean/docker-distribution"
+	"github.com/digitalocean/docker-distribution/manifest"
+	"github.com/digitalocean/docker-distribution/manifest/schema1"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/client/auth"
+	"github.com/digitalocean/docker-distribution/registry/client/auth/challenge"
+	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
+	"github.com/digitalocean/docker-distribution/registry/storage"
+	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
+	"github.com/digitalocean/docker-distribution/testutil"
 )
 
 type statsManifest struct {

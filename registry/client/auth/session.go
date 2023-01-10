@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/distribution/distribution/v3/registry/client"
-	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
-	"github.com/distribution/distribution/v3/registry/client/transport"
+	"github.com/digitalocean/docker-distribution/registry/client"
+	"github.com/digitalocean/docker-distribution/registry/client/auth/challenge"
+	"github.com/digitalocean/docker-distribution/registry/client/transport"
 )
 
 var (

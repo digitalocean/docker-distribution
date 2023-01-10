@@ -11,13 +11,14 @@ import (
 	"strings"
 	"time"
 
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/registry/api/errcode"
-	"github.com/distribution/distribution/v3/registry/auth"
-	_ "github.com/distribution/distribution/v3/registry/auth/htpasswd"
 	"github.com/docker/libtrust"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/registry/api/errcode"
+	"github.com/digitalocean/docker-distribution/registry/auth"
+	_ "github.com/digitalocean/docker-distribution/registry/auth/htpasswd"
 )
 
 var enforceRepoClass bool

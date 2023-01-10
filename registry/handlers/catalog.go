@@ -8,9 +8,10 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/distribution/distribution/v3/registry/api/errcode"
-	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/gorilla/handlers"
+
+	"github.com/digitalocean/docker-distribution/registry/api/errcode"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver"
 )
 
 const maximumReturnedEntries = 100

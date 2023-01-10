@@ -71,4 +71,9 @@ require (
 	google.golang.org/protobuf v1.26.0 // indirect
 )
 
-require github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2
+require (
+	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
+	github.com/bitly/go-simplejson v0.5.0 // indirect
+	github.com/dnaeon/go-vcr v1.2.0 // indirect
+	github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f // indirect
+)

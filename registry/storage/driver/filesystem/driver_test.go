@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/registry/storage/driver/testsuites"
 	. "gopkg.in/check.v1"
+
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/testsuites"
 )
 
 // Hook up gocheck into the "go test" runner.

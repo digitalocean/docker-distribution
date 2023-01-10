@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/registry/storage/cache"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/digitalocean/docker-distribution"
+	"github.com/digitalocean/docker-distribution/registry/storage/cache"
 )
 
 // CheckBlobDescriptorCache takes a cache implementation through a common set

@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	alioss "github.com/denverdino/aliyungo/oss"
-	"github.com/distribution/distribution/v3/context"
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/registry/storage/driver/testsuites"
 	"gopkg.in/check.v1"
+
+	"github.com/digitalocean/docker-distribution/context"
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/testsuites"
 )
 
 // Hook up gocheck into the "go test" runner.

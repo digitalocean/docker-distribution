@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	storageDriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/uuid"
 	"github.com/sirupsen/logrus"
+
+	storageDriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/uuid"
 )
 
 // uploadData stored the location of temporary files created during a layer upload

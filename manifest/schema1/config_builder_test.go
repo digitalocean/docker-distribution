@@ -8,11 +8,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/reference"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/digitalocean/docker-distribution"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/reference"
 )
 
 type mockBlobService struct {

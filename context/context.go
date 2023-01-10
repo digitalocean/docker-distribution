@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/distribution/distribution/v3/uuid"
+	"github.com/digitalocean/docker-distribution/uuid"
 )
 
 // instanceContext is a context that provides only an instance id. It is

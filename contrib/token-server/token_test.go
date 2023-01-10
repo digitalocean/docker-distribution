@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/distribution/distribution/v3/registry/auth"
 	"github.com/docker/libtrust"
+
+	"github.com/digitalocean/docker-distribution/registry/auth"
 )
 
 func TestCreateJWTSuccessWithEmptyACL(t *testing.T) {

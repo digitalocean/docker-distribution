@@ -5,9 +5,10 @@ import (
 	"path"
 	"sort"
 
-	"github.com/distribution/distribution/v3"
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/digitalocean/docker-distribution"
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
 )
 
 var _ distribution.TagService = &tagStore{}

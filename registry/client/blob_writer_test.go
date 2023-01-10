@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/registry/api/errcode"
-	v2 "github.com/distribution/distribution/v3/registry/api/v2"
-	"github.com/distribution/distribution/v3/testutil"
+	"github.com/digitalocean/docker-distribution"
+	"github.com/digitalocean/docker-distribution/registry/api/errcode"
+	v2 "github.com/digitalocean/docker-distribution/registry/api/v2"
+	"github.com/digitalocean/docker-distribution/testutil"
 )
 
 // Test implements distribution.BlobWriter

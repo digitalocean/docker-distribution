@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/storage/driver/inmemory"
+	"github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
 )
 
 func testRefs(t *testing.T) (reference.Reference, reference.Reference, reference.Reference) {

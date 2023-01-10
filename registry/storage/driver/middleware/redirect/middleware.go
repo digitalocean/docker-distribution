@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	storagemiddleware "github.com/distribution/distribution/v3/registry/storage/driver/middleware"
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	storagemiddleware "github.com/digitalocean/docker-distribution/registry/storage/driver/middleware"
 )
 
 type redirectStorageMiddleware struct {

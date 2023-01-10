@@ -10,12 +10,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/storage/cache/memory"
-	"github.com/distribution/distribution/v3/registry/storage/driver/testdriver"
-	"github.com/distribution/distribution/v3/testutil"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/digitalocean/docker-distribution"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/testdriver"
+	"github.com/digitalocean/docker-distribution/testutil"
 )
 
 // TestWriteSeek tests that the current file size can be
