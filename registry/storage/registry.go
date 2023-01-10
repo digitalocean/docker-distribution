@@ -17,7 +17,7 @@ import (
 type registry struct {
 	blobStore                    *blobStore
 	blobServer                   *blobServer
-	statter                      *blobStatter // global statter service.
+	statter                      distribution.BlobStatter
 	blobDescriptorCacheProvider  cache.BlobDescriptorCacheProvider
 	deleteEnabled                bool
 	schema1Enabled               bool
