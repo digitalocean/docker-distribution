@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/libtrust"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage/cache"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"

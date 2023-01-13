@@ -7,6 +7,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/opencontainers/go-digest"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage/cache"
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
+	"github.com/docker/distribution"
 	dcontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/manifestlist"

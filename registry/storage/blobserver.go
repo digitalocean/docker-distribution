@@ -8,6 +8,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/registry/storage/driver"
 )
 
