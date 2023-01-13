@@ -4,6 +4,8 @@ import (
 	"context"
 
 	digest "github.com/opencontainers/go-digest"
+
+	"github.com/docker/distribution"
 )
 
 // signedManifestHandler is a ManifestHandler that unmarshals v1 manifests but
