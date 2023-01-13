@@ -16,6 +16,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	v2 "github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/client/transport"
