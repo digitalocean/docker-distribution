@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	dcontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
