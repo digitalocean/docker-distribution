@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/digitalocean/docker-distribution/registry/api/errcode"
-	"github.com/digitalocean/docker-distribution/registry/client/auth/challenge"
+	"github.com/docker/docker-distribution/registry/api/errcode"
+	"github.com/docker/docker-distribution/registry/client/auth/challenge"
 )
 
 // ErrNoErrorsInBody is returned when an HTTP response body parses to an empty

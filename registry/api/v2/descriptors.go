@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/api/errcode"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/api/errcode"
 )
 
 var (

@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
-	"github.com/digitalocean/docker-distribution/registry/storage"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/filesystem"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/proxy/scheduler"
+	"github.com/docker/docker-distribution/registry/storage"
+	"github.com/docker/docker-distribution/registry/storage/cache/memory"
+	"github.com/docker/docker-distribution/registry/storage/driver/filesystem"
+	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
 )
 
 var sbsMu sync.Mutex

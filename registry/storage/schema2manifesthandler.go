@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/url"
 
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/manifest/schema1"
-	"github.com/digitalocean/docker-distribution/manifest/schema2"
 	"github.com/opencontainers/go-digest"
+
+	dcontext "github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/manifest/schema1"
+	"github.com/docker/docker-distribution/manifest/schema2"
 )
 
 var (

@@ -14,12 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	v2 "github.com/digitalocean/docker-distribution/registry/api/v2"
-	"github.com/digitalocean/docker-distribution/registry/client/transport"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	v2 "github.com/docker/docker-distribution/registry/api/v2"
+	"github.com/docker/docker-distribution/registry/client/transport"
+	"github.com/docker/docker-distribution/registry/storage/cache"
+	"github.com/docker/docker-distribution/registry/storage/cache/memory"
 )
 
 // Registry provides an interface for calling Repositories, which returns a catalog of repositories.

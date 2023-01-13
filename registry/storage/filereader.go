@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
 )
 
 // TODO(stevvooe): Set an optimal buffer size here. We'll have to

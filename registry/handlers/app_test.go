@@ -8,15 +8,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/digitalocean/docker-distribution/configuration"
-	"github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/registry/api/errcode"
-	v2 "github.com/digitalocean/docker-distribution/registry/api/v2"
-	"github.com/digitalocean/docker-distribution/registry/auth"
-	_ "github.com/digitalocean/docker-distribution/registry/auth/silly"
-	"github.com/digitalocean/docker-distribution/registry/storage"
-	memorycache "github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/testdriver"
+	"github.com/docker/docker-distribution/configuration"
+	"github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/registry/api/errcode"
+	v2 "github.com/docker/docker-distribution/registry/api/v2"
+	"github.com/docker/docker-distribution/registry/auth"
+	_ "github.com/docker/docker-distribution/registry/auth/silly"
+	"github.com/docker/docker-distribution/registry/storage"
+	memorycache "github.com/docker/docker-distribution/registry/storage/cache/memory"
+	"github.com/docker/docker-distribution/registry/storage/driver/testdriver"
 )
 
 // TestAppDispatcher builds an application with a test dispatcher and ensures

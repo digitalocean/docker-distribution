@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"sync"
 
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
 	"github.com/opencontainers/go-digest"
+
+	dcontext "github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/proxy/scheduler"
 )
 
 type proxyBlobStore struct {

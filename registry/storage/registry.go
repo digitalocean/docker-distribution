@@ -4,10 +4,11 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache"
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
 	"github.com/docker/libtrust"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/storage/cache"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
 )
 
 // registry is the top-level implementation of Registry for use in the storage

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/digitalocean/docker-distribution/registry/client/auth/challenge"
-	"github.com/digitalocean/docker-distribution/registry/client/transport"
-	"github.com/digitalocean/docker-distribution/testutil"
+	"github.com/docker/docker-distribution/registry/client/auth/challenge"
+	"github.com/docker/docker-distribution/registry/client/transport"
+	"github.com/docker/docker-distribution/testutil"
 )
 
 // An implementation of clock for providing fake time data.

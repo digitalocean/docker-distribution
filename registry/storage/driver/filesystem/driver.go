@@ -10,9 +10,9 @@ import (
 	"path"
 	"time"
 
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/base"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/base"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
 )
 
 const (

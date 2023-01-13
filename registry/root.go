@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/registry/storage"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
-	"github.com/digitalocean/docker-distribution/version"
 	"github.com/docker/libtrust"
 	"github.com/spf13/cobra"
+
+	dcontext "github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/registry/storage"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
+	"github.com/docker/docker-distribution/version"
 )
 
 var showVersion bool

@@ -9,11 +9,11 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/api/errcode"
-	v2 "github.com/digitalocean/docker-distribution/registry/api/v2"
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage"
+	dcontext "github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/api/errcode"
+	v2 "github.com/docker/docker-distribution/registry/api/v2"
+	storagedriver "github.com/docker/docker-distribution/registry/storage"
 )
 
 // blobUploadDispatcher constructs and returns the blob upload handler for the

@@ -6,9 +6,9 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/digitalocean/docker-distribution/manifest/schema2"
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/manifest/schema2"
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/storage/driver"
 )
 
 func emit(format string, a ...interface{}) {

@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
-	prometheus "github.com/digitalocean/docker-distribution/metrics"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache"
 	"github.com/docker/go-metrics"
 	"github.com/opencontainers/go-digest"
+
+	prometheus "github.com/docker/docker-distribution/metrics"
+	"github.com/docker/docker-distribution/registry/storage/cache"
+
+	distribution "github.com/docker/docker-distribution"
 )
 
 type prometheusCacheProvider struct {

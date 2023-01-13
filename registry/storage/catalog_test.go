@@ -7,12 +7,13 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
-	"github.com/digitalocean/docker-distribution/testutil"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/storage/cache/memory"
+	"github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
+	"github.com/docker/docker-distribution/testutil"
 )
 
 type setupEnv struct {

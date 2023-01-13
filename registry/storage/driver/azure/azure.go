@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/base"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/base"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
 
 	azure "github.com/Azure/azure-sdk-for-go/storage"
 )

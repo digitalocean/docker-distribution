@@ -32,9 +32,6 @@ import (
 	"strings"
 	"time"
 
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/base"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -42,6 +39,10 @@ import (
 	"google.golang.org/api/googleapi"
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/storage"
+
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/base"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
 )
 
 const (

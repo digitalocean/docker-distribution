@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver"
 )
 
 const (

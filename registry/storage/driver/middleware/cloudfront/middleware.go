@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudfront/sign"
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	storagemiddleware "github.com/digitalocean/docker-distribution/registry/storage/driver/middleware"
+
+	dcontext "github.com/docker/docker-distribution/context"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	storagemiddleware "github.com/docker/docker-distribution/registry/storage/driver/middleware"
 )
 
 // cloudFrontStorageMiddleware provides a simple implementation of layerHandler that

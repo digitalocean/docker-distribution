@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache/metrics"
 	"github.com/gomodule/redigo/redis"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/storage/cache"
+	"github.com/docker/docker-distribution/registry/storage/cache/metrics"
+
+	distribution "github.com/docker/docker-distribution"
 )
 
 // redisBlobStatService provides an implementation of

@@ -3,9 +3,9 @@ package testdriver
 import (
 	"context"
 
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
+	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
 )
 
 const driverName = "testdriver"

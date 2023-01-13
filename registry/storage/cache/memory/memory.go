@@ -4,10 +4,11 @@ import (
 	"context"
 	"math"
 
-	"github.com/digitalocean/docker-distribution/reference"
-	"github.com/digitalocean/docker-distribution/registry/storage/cache"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/docker-distribution/registry/storage/cache"
 )
 
 const (

@@ -24,10 +24,11 @@ import (
 	"time"
 
 	"github.com/denverdino/aliyungo/oss"
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/base"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
 	"github.com/sirupsen/logrus"
+
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/docker-distribution/registry/storage/driver/base"
+	"github.com/docker/docker-distribution/registry/storage/driver/factory"
 )
 
 const driverName = "oss"

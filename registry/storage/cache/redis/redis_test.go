@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/digitalocean/docker-distribution/registry/storage/cache/cachecheck"
 	"github.com/gomodule/redigo/redis"
+
+	"github.com/docker/docker-distribution/registry/storage/cache/cachecheck"
 )
 
 var redisAddr string

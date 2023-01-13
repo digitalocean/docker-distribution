@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/manifest"
-	"github.com/digitalocean/docker-distribution/manifest/schema2"
-	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/manifest"
+	"github.com/docker/docker-distribution/manifest/schema2"
+	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
 )
 
 func TestVerifyManifestForeignLayer(t *testing.T) {

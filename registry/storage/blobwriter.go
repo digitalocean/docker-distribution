@@ -8,10 +8,12 @@ import (
 	"path"
 	"time"
 
-	dcontext "github.com/digitalocean/docker-distribution/context"
-	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+
+	distribution "github.com/docker/docker-distribution"
+	dcontext "github.com/docker/docker-distribution/context"
+	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
 )
 
 var errResumableDigestNotAvailable = errors.New("resumable digest not available")

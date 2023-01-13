@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/digitalocean/docker-distribution/context"
-	"github.com/digitalocean/docker-distribution/registry/auth"
+	"github.com/docker/docker-distribution/context"
+	"github.com/docker/docker-distribution/registry/auth"
 )
 
 func TestBasicAccessController(t *testing.T) {
