@@ -84,6 +84,7 @@ type Descriptor struct {
 	// NOTE: Before adding a field here, please ensure that all
 	// other options have been exhausted. Much of the type relationships
 	// depend on the simplicity of this type.
+	ModTime time.Time
 }
 
 // Descriptor returns the descriptor, to make it satisfy the Describable

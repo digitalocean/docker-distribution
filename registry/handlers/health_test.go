@@ -56,7 +56,7 @@ func TestFileHealthCheck(t *testing.T) {
 		t.Fatal(`did not get "file exists" result for health check`)
 	}
 
-	os.Remove(tmpfile.Name())
+	os.RemoveAll(tmpfile.Name())
 
 	<-time.After(2 * interval)
 	if len(healthRegistry.CheckStatus()) != 0 {
