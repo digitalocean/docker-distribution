@@ -11,7 +11,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/docker/distribution/reference"
 )
 
 var (
