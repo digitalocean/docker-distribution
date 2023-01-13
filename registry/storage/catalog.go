@@ -7,8 +7,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/storage/driver"
 )
 
 // Returns a list, or partial list, of repositories in the registry.

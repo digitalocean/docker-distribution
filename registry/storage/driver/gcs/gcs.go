@@ -40,9 +40,9 @@ import (
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/storage"
 
-	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
-	"github.com/docker/docker-distribution/registry/storage/driver/base"
-	"github.com/docker/docker-distribution/registry/storage/driver/factory"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/distribution/registry/storage/driver/base"
+	"github.com/docker/distribution/registry/storage/driver/factory"
 )
 
 const (

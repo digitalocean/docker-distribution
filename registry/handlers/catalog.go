@@ -10,8 +10,8 @@ import (
 
 	"github.com/gorilla/handlers"
 
-	"github.com/docker/docker-distribution/registry/api/errcode"
-	"github.com/docker/docker-distribution/registry/storage/driver"
+	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/docker/distribution/registry/storage/driver"
 )
 
 const maximumReturnedEntries = 100

@@ -6,8 +6,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/api/errcode"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
 )
 
 var (

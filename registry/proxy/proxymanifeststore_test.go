@@ -9,16 +9,16 @@ import (
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/manifest"
-	"github.com/docker/docker-distribution/manifest/schema1"
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/client/auth"
-	"github.com/docker/docker-distribution/registry/client/auth/challenge"
-	"github.com/docker/docker-distribution/registry/proxy/scheduler"
-	"github.com/docker/docker-distribution/registry/storage"
-	"github.com/docker/docker-distribution/registry/storage/cache/memory"
-	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
-	"github.com/docker/docker-distribution/testutil"
+	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/auth/challenge"
+	"github.com/docker/distribution/registry/proxy/scheduler"
+	"github.com/docker/distribution/registry/storage"
+	"github.com/docker/distribution/registry/storage/cache/memory"
+	"github.com/docker/distribution/registry/storage/driver/inmemory"
+	"github.com/docker/distribution/testutil"
 )
 
 type statsManifest struct {

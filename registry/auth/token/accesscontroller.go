@@ -14,8 +14,8 @@ import (
 
 	"github.com/docker/libtrust"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/registry/auth"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/auth"
 )
 
 // accessSet maps a typed, named resource to

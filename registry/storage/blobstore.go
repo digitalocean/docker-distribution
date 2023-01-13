@@ -7,9 +7,9 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	distribution "github.com/docker/docker-distribution"
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/registry/storage/driver"
+	distribution "github.com/docker/distribution"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/storage/driver"
 )
 
 // blobStore implements the read side of the blob store interface over a

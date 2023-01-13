@@ -8,8 +8,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/manifest/ocischema"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/manifest/ocischema"
 )
 
 // ocischemaManifestHandler is a ManifestHandler that covers ocischema manifests.

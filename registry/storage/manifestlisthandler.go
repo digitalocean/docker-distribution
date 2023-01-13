@@ -6,8 +6,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/manifest/manifestlist"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/manifest/manifestlist"
 )
 
 // manifestListHandler is a ManifestHandler that covers schema2 manifest lists.

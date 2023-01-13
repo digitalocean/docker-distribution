@@ -7,11 +7,11 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/storage/cache"
-	"github.com/docker/docker-distribution/registry/storage/cache/metrics"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/storage/cache"
+	"github.com/docker/distribution/registry/storage/cache/metrics"
 
-	distribution "github.com/docker/docker-distribution"
+	distribution "github.com/docker/distribution"
 )
 
 // redisBlobStatService provides an implementation of

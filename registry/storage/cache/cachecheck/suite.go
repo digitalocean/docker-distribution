@@ -7,7 +7,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/registry/storage/cache"
+	"github.com/docker/distribution/registry/storage/cache"
 )
 
 // CheckBlobDescriptorCache takes a cache implementation through a common set

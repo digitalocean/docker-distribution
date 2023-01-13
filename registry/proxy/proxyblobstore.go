@@ -9,9 +9,9 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/proxy/scheduler"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/proxy/scheduler"
 )
 
 type proxyBlobStore struct {

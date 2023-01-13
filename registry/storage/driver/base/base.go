@@ -44,9 +44,9 @@ import (
 
 	"github.com/docker/go-metrics"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	prometheus "github.com/docker/docker-distribution/metrics"
-	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	dcontext "github.com/docker/distribution/context"
+	prometheus "github.com/docker/distribution/metrics"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
 )
 
 // storageAction is the metrics of blob related operations

@@ -16,8 +16,8 @@ import (
 
 	"github.com/docker/libtrust"
 
-	"github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/registry/auth"
+	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/auth"
 )
 
 func makeRootKeys(numKeys int) ([]libtrust.PrivateKey, error) {

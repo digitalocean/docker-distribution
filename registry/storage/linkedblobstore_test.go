@@ -11,8 +11,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/testutil"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/testutil"
 )
 
 func TestLinkedBlobStoreEnumerator(t *testing.T) {

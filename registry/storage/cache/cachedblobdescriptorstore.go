@@ -5,8 +5,8 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	prometheus "github.com/docker/docker-distribution/metrics"
+	dcontext "github.com/docker/distribution/context"
+	prometheus "github.com/docker/distribution/metrics"
 )
 
 type cachedBlobStatter struct {

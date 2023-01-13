@@ -11,16 +11,16 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/manifest/manifestlist"
-	"github.com/docker/docker-distribution/manifest/ocischema"
-	"github.com/docker/docker-distribution/manifest/schema1"
-	"github.com/docker/docker-distribution/manifest/schema2"
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/api/errcode"
-	v2 "github.com/docker/docker-distribution/registry/api/v2"
-	"github.com/docker/docker-distribution/registry/auth"
-	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/manifest/manifestlist"
+	"github.com/docker/distribution/manifest/ocischema"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
+	v2 "github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/auth"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
 )
 
 // These constants determine which architecture and OS to choose from a

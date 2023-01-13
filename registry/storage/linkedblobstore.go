@@ -10,10 +10,10 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/storage/driver"
-	"github.com/docker/docker-distribution/uuid"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/distribution/uuid"
 )
 
 // linkPathFunc describes a function that can resolve a link based on the

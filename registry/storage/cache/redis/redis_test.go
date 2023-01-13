@@ -8,7 +8,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 
-	"github.com/docker/docker-distribution/registry/storage/cache/cachecheck"
+	"github.com/docker/distribution/registry/storage/cache/cachecheck"
 )
 
 var redisAddr string

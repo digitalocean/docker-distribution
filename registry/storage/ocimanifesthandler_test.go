@@ -9,9 +9,9 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/docker/docker-distribution/manifest"
-	"github.com/docker/docker-distribution/manifest/ocischema"
-	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
+	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/ocischema"
+	"github.com/docker/distribution/registry/storage/driver/inmemory"
 )
 
 func TestVerifyOCIManifestNonDistributableLayer(t *testing.T) {

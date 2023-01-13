@@ -7,10 +7,10 @@ import (
 
 	digest "github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/manifest"
-	"github.com/docker/docker-distribution/manifest/schema2"
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
+	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/storage/driver/inmemory"
 )
 
 type tagsTestEnv struct {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	storageDriver "github.com/docker/docker-distribution/registry/storage/driver"
-	"github.com/docker/docker-distribution/uuid"
+	storageDriver "github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/distribution/uuid"
 )
 
 // uploadData stored the location of temporary files created during a layer upload

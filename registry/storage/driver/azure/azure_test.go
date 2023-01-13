@@ -8,8 +8,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
-	"github.com/docker/docker-distribution/registry/storage/driver/testsuites"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/distribution/registry/storage/driver/testsuites"
 )
 
 const (

@@ -8,8 +8,8 @@ import (
 
 	"github.com/gorilla/handlers"
 
-	"github.com/docker/docker-distribution/registry/api/errcode"
-	v2 "github.com/docker/docker-distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/api/errcode"
+	v2 "github.com/docker/distribution/registry/api/v2"
 )
 
 // tagsDispatcher constructs the tags handler api endpoint.

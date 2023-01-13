@@ -12,12 +12,12 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/proxy/scheduler"
-	"github.com/docker/docker-distribution/registry/storage"
-	"github.com/docker/docker-distribution/registry/storage/cache/memory"
-	"github.com/docker/docker-distribution/registry/storage/driver/filesystem"
-	"github.com/docker/docker-distribution/registry/storage/driver/inmemory"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/proxy/scheduler"
+	"github.com/docker/distribution/registry/storage"
+	"github.com/docker/distribution/registry/storage/cache/memory"
+	"github.com/docker/distribution/registry/storage/driver/filesystem"
+	"github.com/docker/distribution/registry/storage/driver/inmemory"
 )
 
 var sbsMu sync.Mutex

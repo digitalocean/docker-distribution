@@ -7,7 +7,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	storagedriver "github.com/docker/docker-distribution/registry/storage/driver"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
 )
 
 var _ distribution.TagService = &tagStore{}

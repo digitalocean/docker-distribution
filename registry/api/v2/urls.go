@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/docker/docker-distribution/reference"
+	"github.com/docker/distribution/reference"
 )
 
 // URLBuilder creates registry API urls from a single base endpoint. It can be

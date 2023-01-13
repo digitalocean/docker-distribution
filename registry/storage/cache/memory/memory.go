@@ -7,8 +7,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/docker/docker-distribution/reference"
-	"github.com/docker/docker-distribution/registry/storage/cache"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/storage/cache"
 )
 
 const (

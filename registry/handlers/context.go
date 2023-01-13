@@ -7,10 +7,10 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
-	dcontext "github.com/docker/docker-distribution/context"
-	"github.com/docker/docker-distribution/registry/api/errcode"
-	v2 "github.com/docker/docker-distribution/registry/api/v2"
-	"github.com/docker/docker-distribution/registry/auth"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/api/errcode"
+	v2 "github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/auth"
 )
 
 // Context should contain the request specific context for use in across

@@ -7,10 +7,10 @@ import (
 	"github.com/docker/go-metrics"
 	"github.com/opencontainers/go-digest"
 
-	prometheus "github.com/docker/docker-distribution/metrics"
-	"github.com/docker/docker-distribution/registry/storage/cache"
+	prometheus "github.com/docker/distribution/metrics"
+	"github.com/docker/distribution/registry/storage/cache"
 
-	distribution "github.com/docker/docker-distribution"
+	distribution "github.com/docker/distribution"
 )
 
 type prometheusCacheProvider struct {
