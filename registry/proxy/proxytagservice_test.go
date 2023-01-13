@@ -6,8 +6,6 @@ import (
 	"sort"
 	"sync"
 	"testing"
-
-	"github.com/distribution/distribution/v3"
 )
 
 type mockTagStore struct {

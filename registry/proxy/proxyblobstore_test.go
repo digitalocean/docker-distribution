@@ -10,13 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
-	"github.com/distribution/distribution/v3/registry/storage"
-	"github.com/distribution/distribution/v3/registry/storage/cache/memory"
-	"github.com/distribution/distribution/v3/registry/storage/driver/filesystem"
-	"github.com/distribution/distribution/v3/registry/storage/driver/inmemory"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
+	"github.com/digitalocean/docker-distribution/registry/storage"
+	"github.com/digitalocean/docker-distribution/registry/storage/cache/memory"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/filesystem"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
 	"github.com/opencontainers/go-digest"
 )
 

@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/manifest/schema1"
-	"github.com/distribution/distribution/v3/reference"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/manifest/schema1"
+	"github.com/digitalocean/docker-distribution/reference"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
 )

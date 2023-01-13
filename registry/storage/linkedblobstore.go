@@ -8,12 +8,13 @@ import (
 	"path"
 	"time"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/uuid"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/uuid"
 	"github.com/opencontainers/go-digest"
+
+	"github.com/distribution/distribution/v3"
 )
 
 // linkPathFunc describes a function that can resolve a link based on the

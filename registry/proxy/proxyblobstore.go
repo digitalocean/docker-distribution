@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
 	"github.com/opencontainers/go-digest"
 )
 

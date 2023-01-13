@@ -36,11 +36,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/registry/client/transport"
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/registry/storage/driver/base"
-	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/registry/client/transport"
+	storagedriver "github.com/digitalocean/docker-distribution/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/base"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver/factory"
 )
 
 const driverName = "s3aws"
@@ -865,7 +865,7 @@ func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo,
 		Prefix:  aws.String(d.s3Path(path)),
 		MaxKeys: aws.Int64(1),
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}

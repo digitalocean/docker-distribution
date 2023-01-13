@@ -8,12 +8,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect" // used as a replacement for testify
 	"testing"
 	"time"
 
-	dcontext "github.com/distribution/distribution/v3/context"
-
-	"reflect" // used as a replacement for testify
+	dcontext "github.com/digitalocean/docker-distribution/context"
 )
 
 // Rather than pull in all of testify

@@ -3,8 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-
-	"github.com/distribution/distribution/v3"
 )
 
 // InitFunc is the type of a RepositoryMiddleware factory function and is

@@ -27,9 +27,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
-	"github.com/distribution/distribution/v3/configuration"
-	dcontext "github.com/distribution/distribution/v3/context"
-	_ "github.com/distribution/distribution/v3/registry/storage/driver/inmemory"
+	"github.com/digitalocean/docker-distribution/configuration"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	_ "github.com/digitalocean/docker-distribution/registry/storage/driver/inmemory"
 )
 
 // Tests to ensure nextProtos returns the correct protocols when:

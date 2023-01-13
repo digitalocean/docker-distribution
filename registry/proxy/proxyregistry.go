@@ -7,17 +7,16 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/configuration"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/reference"
-	"github.com/distribution/distribution/v3/registry/client"
-	"github.com/distribution/distribution/v3/registry/client/auth"
-	"github.com/distribution/distribution/v3/registry/client/auth/challenge"
-	"github.com/distribution/distribution/v3/registry/client/transport"
-	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
-	"github.com/distribution/distribution/v3/registry/storage"
-	"github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/digitalocean/docker-distribution/configuration"
+	dcontext "github.com/digitalocean/docker-distribution/context"
+	"github.com/digitalocean/docker-distribution/reference"
+	"github.com/digitalocean/docker-distribution/registry/client"
+	"github.com/digitalocean/docker-distribution/registry/client/auth"
+	"github.com/digitalocean/docker-distribution/registry/client/auth/challenge"
+	"github.com/digitalocean/docker-distribution/registry/client/transport"
+	"github.com/digitalocean/docker-distribution/registry/proxy/scheduler"
+	"github.com/digitalocean/docker-distribution/registry/storage"
+	"github.com/digitalocean/docker-distribution/registry/storage/driver"
 )
 
 // proxyingRegistry fetches content from a remote registry and caches it locally
