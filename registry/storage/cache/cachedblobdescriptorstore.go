@@ -5,6 +5,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 
+	"github.com/docker/distribution"
 	dcontext "github.com/docker/distribution/context"
 	prometheus "github.com/docker/distribution/metrics"
 )
