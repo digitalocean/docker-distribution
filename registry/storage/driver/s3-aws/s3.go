@@ -1154,6 +1154,9 @@ ListLoop:
 					Quiet:   aws.Bool(false),
 				},
 			})
+			fmt.Printf("DEBUG RAW AWS RESP %v", resp)
+			fmt.Printf("DEBUG RAW AWS ERR %v", resp)
+
 			if err != nil {
 				return fmt.Errorf("failed deleting s3Objects - %s", err)
 			}
