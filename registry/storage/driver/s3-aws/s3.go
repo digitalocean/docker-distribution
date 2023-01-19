@@ -1202,6 +1202,7 @@ ListLoop:
 			// ideally all errors would be returned in some way
 			// until then, at least pass back the first error code
 			oErr := output.Errors[0]
+			fmt.Printf("DEBUG RAW AWS CODE %v", oErr)
 			return errors.New(*oErr.Code)
 		}
 	}
