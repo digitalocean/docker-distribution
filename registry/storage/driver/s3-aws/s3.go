@@ -15,7 +15,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -1140,44 +1139,6 @@ ListLoop:
 			})
 		}
 
-		// Delete objects only if the list is not empty, otherwise S3 API returns a cryptic error
-		if len(s3Objects) > 0 {
-			// NOTE: according to AWS docs https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html
-			// by default the response returns up to 1,000 key names. The response _might_ contain fewer keys but it will never contain more.
-			// 10000 keys is coincidentally (?) also the max number of keys that can be deleted in a single Delete operation, so we'll just smack
-			// Delete here straight away and reset the object slice when successful.
-			fmt.Println("DEBUG S3 DELETE CALLED")
-			resp, err := d.S3.DeleteObjects(&s3.DeleteObjectsInput{
-				Bucket: aws.String(d.Bucket),
-				Delete: &s3.Delete{
-					Objects: s3Objects,
-					Quiet:   aws.Bool(false),
-				},
-			})
-			fmt.Printf("DEBUG RAW AWS RESP %v", resp)
-			fmt.Printf("DEBUG RAW AWS ERR %v", resp)
-
-			if err != nil {
-				return fmt.Errorf("failed deleting s3Objects - %s", err)
-			}
-
-			if len(resp.Errors) > 0 {
-				// NOTE: AWS SDK s3.Error does not implement error interface which
-				// is pretty intensely sad, so we have to do away with this for now.
-				errs := make([]error, 0, len(resp.Errors))
-				for _, err := range resp.Errors {
-					errs = append(errs, errors.New(err.String()))
-				}
-				return storagedriver.Errors{
-					DriverName: driverName,
-					Errs:       errs,
-				}
-			}
-		}
-		// NOTE: we don't want to reallocate
-		// the slice so we simply "reset" it
-		s3Objects = s3Objects[:0]
-
 		// resp.Contents must have at least one element or we would have returned not found
 		listObjectsInput.StartAfter = resp.Contents[len(resp.Contents)-1].Key
 
@@ -1187,7 +1148,6 @@ ListLoop:
 			break
 		}
 	}
-
 	total := len(s3Objects)
 	if total == 0 {
 		return storagedriver.PathNotFoundError{Path: path}
@@ -1196,7 +1156,7 @@ ListLoop:
 	// need to chunk objects into groups of 1000 per s3 restrictions
 	for i := 0; i < total; i += 1000 {
 		r := math.Min(float64(i+1000), float64(total))
-		output, err := s.DeleteObjects(&s3.DeleteObjectsInput{
+		_, err := s.DeleteObjects(&s3.DeleteObjectsInput{
 			Bucket: aws.String(d.Bucket),
 			Delete: &s3.Delete{
 				Objects: s3Objects[i:int(r)],
@@ -1205,13 +1165,6 @@ ListLoop:
 		})
 		if err != nil {
 			return fmt.Errorf("failed deleting s3Object batch - %s", err)
-		}
-		if output.Errors != nil && len(output.Errors) > 0 {
-			// ideally all errors would be returned in some way
-			// until then, at least pass back the first error code
-			oErr := output.Errors[0]
-			fmt.Printf("DEBUG RAW AWS CODE %v", oErr)
-			return errors.New(*oErr.Code)
 		}
 	}
 	fmt.Println("DEBUG S3 DONE")
