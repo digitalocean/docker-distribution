@@ -1155,7 +1155,7 @@ ListLoop:
 				},
 			})
 			fmt.Printf("DEBUG RAW AWS RESP %v", resp)
-			fmt.Printf("DEBUG RAW AWS ERR %v", resp)
+			fmt.Printf("DEBUG RAW AWS ERR %v", err)
 
 			if err != nil {
 				return fmt.Errorf("failed deleting s3Objects - %s", err)
