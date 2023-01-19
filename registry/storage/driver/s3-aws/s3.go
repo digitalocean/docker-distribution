@@ -1103,7 +1103,7 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 	// manually add the given path if it's a file
 	stat, err := d.Stat(ctx, path)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed statting file %s", err)
 	}
 	if stat != nil && !stat.IsDir() {
 		path := d.s3Path(path)
@@ -1150,7 +1150,7 @@ ListLoop:
 				},
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed deleting s3Objects - %s", err)
 			}
 
 			if len(resp.Errors) > 0 {
@@ -1196,7 +1196,7 @@ ListLoop:
 			},
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed deleting s3Object batch - %s", err)
 		}
 		if output.Errors != nil && len(output.Errors) > 0 {
 			// ideally all errors would be returned in some way
