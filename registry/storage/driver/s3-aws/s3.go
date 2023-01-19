@@ -1098,9 +1098,11 @@ func min(a, b int) int {
 // Delete recursively deletes all objects stored at "path" and its subpaths.
 // We must be careful since S3 does not guarantee read after delete consistency
 func (d *driver) Delete(ctx context.Context, path string) error {
+	fmt.Println("DEBUG DELETE METHOD CALLED")
 	s := d.s3Client(ctx)
 	s3Objects := make([]*s3.ObjectIdentifier, 0, listMax)
 	// manually add the given path if it's a file
+	fmt.Println("DEBUG S3 STAT CALLED")
 	stat, err := d.Stat(ctx, path)
 	if err != nil {
 		return fmt.Errorf("failed statting file %s", err)
@@ -1122,11 +1124,13 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 ListLoop:
 	for {
 		// list all the objects
+		fmt.Println("DEBUG S3 LIST CALLED")
 		resp, err := d.S3.ListObjectsV2(listObjectsInput)
 		// resp.Contents can only be empty on the first call
 		// if there were no more results to return after the first call, resp.IsTruncated would have been false
 		// and the loop would exit without recalling ListObjects
 		if err != nil || len(resp.Contents) == 0 {
+			fmt.Println("DEBUG S3 LIST BREAK CALLED")
 			break ListLoop
 		}
 
@@ -1142,6 +1146,7 @@ ListLoop:
 			// by default the response returns up to 1,000 key names. The response _might_ contain fewer keys but it will never contain more.
 			// 10000 keys is coincidentally (?) also the max number of keys that can be deleted in a single Delete operation, so we'll just smack
 			// Delete here straight away and reset the object slice when successful.
+			fmt.Println("DEBUG S3 DELETE CALLED")
 			resp, err := d.S3.DeleteObjects(&s3.DeleteObjectsInput{
 				Bucket: aws.String(d.Bucket),
 				Delete: &s3.Delete{
@@ -1206,6 +1211,7 @@ ListLoop:
 			return errors.New(*oErr.Code)
 		}
 	}
+	fmt.Println("DEBUG S3 DONE")
 	return nil
 }
 
