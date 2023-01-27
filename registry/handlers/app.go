@@ -15,6 +15,13 @@ import (
 	"strings"
 	"time"
 
+	events "github.com/docker/go-events"
+	"github.com/docker/go-metrics"
+	"github.com/docker/libtrust"
+	"github.com/garyburd/redigo/redis"
+	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	dcontext "github.com/docker/distribution/context"
@@ -36,12 +43,6 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/factory"
 	storagemiddleware "github.com/docker/distribution/registry/storage/driver/middleware"
 	"github.com/docker/distribution/version"
-	events "github.com/docker/go-events"
-	"github.com/docker/go-metrics"
-	"github.com/docker/libtrust"
-	"github.com/garyburd/redigo/redis"
-	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 // randomSecretSize is the number of random bytes to generate if no secret
@@ -155,7 +156,6 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 	if err != nil {
 		panic(err)
 	}
-
 	app.configureSecret(config)
 	app.configureEvents(config)
 	app.configureRedis(config)
@@ -331,7 +331,11 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 	if !ok {
 		dcontext.GetLogger(app).Warnf("Registry does not implement RepositoryRemover. Will not be able to delete repos and tags")
 	}
-
+	driverWithOpts, ok := app.driver.(storagedriver.WithOptions)
+	if ok {
+		dcontext.GetLogger(app).Infof("Additional options passed with storage driver. Custom behaviour applies")
+		driverWithOpts.ErrorHandler(app)
+	}
 	return app
 }
 
