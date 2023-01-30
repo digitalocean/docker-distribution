@@ -331,11 +331,6 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 	if !ok {
 		dcontext.GetLogger(app).Warnf("Registry does not implement RepositoryRemover. Will not be able to delete repos and tags")
 	}
-	driverWithOpts, ok := app.driver.(storagedriver.WithOptions)
-	if ok {
-		dcontext.GetLogger(app).Infof("Additional options passed with storage driver. Custom behaviour applies")
-		driverWithOpts.ErrorHandler(app)
-	}
 	return app
 }
 
