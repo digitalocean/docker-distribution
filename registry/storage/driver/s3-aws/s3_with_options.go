@@ -2,7 +2,6 @@ package s3
 
 import (
 	"context"
-	"errors"
 	"io"
 	"strings"
 
@@ -17,18 +16,15 @@ type WithOptions struct {
 	checkForContextCancel RequestContextCancelledFunc
 }
 
-func NewWithOptions(opts ...Option) (storagedriver.StorageDriver, error) {
+func NewWithOptions(s3 storagedriver.StorageDriver, opts ...Option) storagedriver.StorageDriver {
 	sd := &WithOptions{
-		nil,
+		s3,
 		checkS3RequestContextCancellation,
 	}
 	for _, opt := range opts {
 		opt(sd)
 	}
-	if sd.s3 == nil {
-		return nil, errors.New("failed creating storage driver with options - no S3 driver set")
-	}
-	return sd, nil
+	return sd
 }
 
 func (w *WithOptions) Name() string {
