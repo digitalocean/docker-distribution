@@ -169,17 +169,6 @@ func (err QuotaExceededError) Error() string {
 	return fmt.Sprintf("%s: quota exceeded", err.DriverName)
 }
 
-type RequestContextCancelledError struct {
-	DriverName string
-	Path       string
-	StatusCode int
-	Enclosed   error
-}
-
-func (r *RequestContextCancelledError) Error() string {
-	return fmt.Sprintf("Request from storage driver %s - cancelled with response %d: %s", r.DriverName, r.StatusCode, r.Enclosed)
-}
-
 // Error is a catch-all error type which captures an error string and
 // the driver type on which it occurred.
 type Error struct {

@@ -3,13 +3,12 @@ package s3
 import (
 	"context"
 	"io"
-	"strings"
 
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 )
 
 type Option func(s *WithOptions)
-type RequestContextCancelledFunc func(driverName string, path string, err error) error
+type RequestContextCancelledFunc func(err error) error
 
 type WithOptions struct {
 	s3                    storagedriver.StorageDriver
@@ -33,18 +32,11 @@ func (w *WithOptions) Name() string {
 
 func (w *WithOptions) GetContent(ctx context.Context, path string) ([]byte, error) {
 	data, err := w.s3.GetContent(ctx, path)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), path, err)
-	}
-	return data, err
+	return data, w.checkForContextCancel(err)
 }
 
 func (w *WithOptions) PutContent(ctx context.Context, path string, content []byte) error {
-	err := w.s3.PutContent(ctx, path, content)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), path, err)
-	}
-	return err
+	return checkS3RequestContextCancellation(w.s3.PutContent(ctx, path, content))
 }
 
 func (w *WithOptions) Reader(ctx context.Context, path string, offset int64) (io.ReadCloser, error) {
@@ -57,34 +49,20 @@ func (w *WithOptions) Writer(ctx context.Context, path string, append bool) (sto
 
 func (w *WithOptions) Stat(ctx context.Context, path string) (storagedriver.FileInfo, error) {
 	info, err := w.s3.Stat(ctx, path)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), path, err)
-	}
-	return info, err
+	return info, w.checkForContextCancel(err)
 }
 
 func (w *WithOptions) List(ctx context.Context, path string) ([]string, error) {
 	listRes, err := w.s3.List(ctx, path)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), path, err)
-	}
-	return listRes, err
+	return listRes, w.checkForContextCancel(err)
 }
 
 func (w *WithOptions) Move(ctx context.Context, sourcePath string, destPath string) error {
-	err := w.s3.Move(ctx, sourcePath, destPath)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), sourcePath, err)
-	}
-	return err
+	return w.checkForContextCancel(w.s3.Move(ctx, sourcePath, destPath))
 }
 
 func (w *WithOptions) Delete(ctx context.Context, path string) error {
-	err := w.s3.Delete(ctx, path)
-	if err != nil {
-		err = w.checkForContextCancel(w.Name(), path, err)
-	}
-	return err
+	return w.checkForContextCancel(w.s3.Delete(ctx, path))
 }
 
 func (w *WithOptions) URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error) {
@@ -95,26 +73,12 @@ func (w *WithOptions) Walk(ctx context.Context, path string, f storagedriver.Wal
 	return w.s3.Walk(ctx, path, f)
 }
 
-func WithWrappedS3Driver(s storagedriver.StorageDriver) func(d *WithOptions) {
-	return func(d *WithOptions) {
-		d.s3 = s
-	}
-}
-
 func WithRequestContextCancelled(f RequestContextCancelledFunc) func(d *WithOptions) {
 	return func(d *WithOptions) {
 		d.checkForContextCancel = f
 	}
 }
 
-func checkS3RequestContextCancellation(driverName string, path string, err error) error {
-	if strings.Contains(err.Error(), "RequestCanceled") {
-		return &storagedriver.RequestContextCancelledError{
-			DriverName: driverName,
-			Path:       path,
-			StatusCode: 499,
-			Enclosed:   err,
-		}
-	}
+func checkS3RequestContextCancellation(err error) error {
 	return err
 }

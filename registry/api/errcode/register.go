@@ -73,6 +73,15 @@ var (
 		service too many times`,
 		HTTPStatusCode: http.StatusTooManyRequests,
 	})
+
+	// ErrorCodeClientClosedRequest is returned if a client cancels a request or a context timeout
+	// is reached causing cancellation
+	ErrorCodeClientClosedRequest = Register("errcode", ErrorDescriptor{
+		Value:          "CLIENTCLOSEDREQUEST",
+		Message:        "client closed the connection",
+		Description:    "Returned when a client closed a request or a request has reached a context timeout",
+		HTTPStatusCode: 499,
+	})
 )
 
 var nextCode = 1000
