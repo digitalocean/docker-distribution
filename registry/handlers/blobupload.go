@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/gorilla/handlers"
+	"github.com/opencontainers/go-digest"
+
 	"github.com/docker/distribution"
 	dcontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
@@ -12,8 +15,6 @@ import (
 	v2 "github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/storage"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/gorilla/handlers"
-	"github.com/opencontainers/go-digest"
 )
 
 // blobUploadDispatcher constructs and returns the blob upload handler for the
@@ -84,6 +85,8 @@ func (buh *blobUploadHandler) StartBlobUpload(w http.ResponseWriter, r *http.Req
 			}
 		} else if _, ok := err.(storagedriver.QuotaExceededError); ok {
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeDenied.WithMessage("quota exceeded"))
+		} else if _, ok := err.(storagedriver.RequestContextCancelledError); ok {
+			buh.Errors = append(buh.Errors, errcode.ErrorCodeClientClosedRequest)
 		} else if err == distribution.ErrUnsupported {
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnsupported)
 		} else {
@@ -143,6 +146,8 @@ func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Reque
 		switch err := err.(type) {
 		case storagedriver.QuotaExceededError:
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeDenied.WithMessage("quota exceeded"))
+		case storagedriver.RequestContextCancelledError:
+			buh.Errors = append(buh.Errors, errcode.ErrorCodeClientClosedRequest)
 		default:
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err.Error()))
 		}
@@ -196,6 +201,8 @@ func (buh *blobUploadHandler) BlobUploadComplete(w http.ResponseWriter, r *http.
 		switch err := err.(type) {
 		case storagedriver.QuotaExceededError:
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeDenied.WithMessage("quota exceeded"))
+		case storagedriver.RequestContextCancelledError:
+			buh.Errors = append(buh.Errors, errcode.ErrorCodeClientClosedRequest)
 		default:
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err.Error()))
 		}
@@ -216,6 +223,8 @@ func (buh *blobUploadHandler) BlobUploadComplete(w http.ResponseWriter, r *http.
 			buh.Errors = append(buh.Errors, v2.ErrorCodeDigestInvalid.WithDetail(err))
 		case storagedriver.QuotaExceededError:
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeDenied.WithMessage("quota exceeded"))
+		case storagedriver.RequestContextCancelledError:
+			buh.Errors = append(buh.Errors, errcode.ErrorCodeClientClosedRequest)
 		case errcode.Error:
 			buh.Errors = append(buh.Errors, err)
 		default:

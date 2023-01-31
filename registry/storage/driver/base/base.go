@@ -42,10 +42,11 @@ import (
 	"io"
 	"time"
 
+	"github.com/docker/go-metrics"
+
 	dcontext "github.com/docker/distribution/context"
 	prometheus "github.com/docker/distribution/metrics"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/docker/go-metrics"
 )
 
 var (
@@ -81,6 +82,9 @@ func (base *Base) setDriverName(e error) error {
 		actual.DriverName = base.StorageDriver.Name()
 		return actual
 	case storagedriver.QuotaExceededError:
+		actual.DriverName = base.StorageDriver.Name()
+		return actual
+	case storagedriver.RequestContextCancelledError:
 		actual.DriverName = base.StorageDriver.Name()
 		return actual
 	default:

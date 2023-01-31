@@ -169,6 +169,16 @@ func (err QuotaExceededError) Error() string {
 	return fmt.Sprintf("%s: quota exceeded", err.DriverName)
 }
 
+// RequestContextCancelledError is returned when a storage driver request has been cancelled
+// either by a timeout or end user
+type RequestContextCancelledError struct {
+	DriverName string
+}
+
+func (err RequestContextCancelledError) Error() string {
+	return fmt.Sprintf("%s: request context cancelled", err.DriverName)
+}
+
 // Error is a catch-all error type which captures an error string and
 // the driver type on which it occurred.
 type Error struct {

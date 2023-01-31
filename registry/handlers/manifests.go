@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/handlers"
+	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+
 	"github.com/docker/distribution"
 	dcontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/manifest/manifestlist"
@@ -18,9 +22,6 @@ import (
 	v2 "github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/auth"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/gorilla/handlers"
-	"github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // These constants determine which architecture and OS to choose from a
@@ -372,6 +373,8 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 			}
 		case storagedriver.QuotaExceededError:
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeDenied.WithMessage("quota exceeded"))
+		case storagedriver.RequestContextCancelledError:
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeClientClosedRequest)
 		case errcode.Error:
 			imh.Errors = append(imh.Errors, err)
 		default:
