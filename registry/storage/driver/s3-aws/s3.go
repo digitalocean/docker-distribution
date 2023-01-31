@@ -881,10 +881,7 @@ func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo,
 		Prefix:  aws.String(d.s3Path(path)),
 		MaxKeys: aws.Int64(1),
 	})
-<<<<<<< HEAD
-=======
 
->>>>>>> 70cd24bd (DOCR-368 log bucket name & object key when non-upload S3 API duration exceeds threshold)
 	if err != nil {
 		return nil, err
 	}

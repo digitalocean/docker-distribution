@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +9,18 @@ import (
 	"strings"
 
 	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/registry/api/errcode"
 )
+
+type ErrorClientDisconnected struct{}
+
+func (e ErrorClientDisconnected) Error() string {
+	return errcode.ErrorCodeClientDisconnected.Error()
+}
+
+func (e ErrorClientDisconnected) CodeWithMessage() errcode.Error {
+	return errcode.ErrorCodeClientDisconnected.WithMessage("client disconnected")
+}
 
 // closeResources closes all the provided resources after running the target
 // handler.
@@ -55,7 +65,7 @@ func copyFullPayload(ctx context.Context, responseWriter http.ResponseWriter, r 
 				"copied":        copied,
 				"contentLength": r.ContentLength,
 			}, "error", "copied", "contentLength").Error("client disconnected during " + action)
-			return errors.New("client disconnected")
+			return ErrorClientDisconnected{}
 		default:
 		}
 	}
@@ -82,4 +92,36 @@ func parseContentRange(cr string) (start int64, end int64, err error) {
 		return -1, -1, err
 	}
 	return start, end, nil
+}
+
+// checkForClientDisconnection is a generic function which checks if a HTTP request for a given client has been closed
+// and if it has returns a typed client disconnection event
+func checkForClientDisconnection(w http.ResponseWriter, r *http.Request) error {
+	var body = r.Body
+	clientClosed := r.Context().Done()
+	bodyLen, err := body.Read([]byte{})
+	if clientClosed != nil && (err != nil || (r.ContentLength > 0 && int64(bodyLen) < r.ContentLength)) {
+		select {
+		case <-clientClosed:
+			w.WriteHeader(499)
+			return ErrorClientDisconnected{}
+		default:
+		}
+	}
+	return nil
+}
+
+// handleDisconnectionEvent is a utility abstraction for checking client disconnection events and ensures the correct
+// 499 error is surfaced to the client. As this logic is used in multiple places this prevents the handling logic
+// from being duplicated
+func handleDisconnectionEvent(ctx *Context, w http.ResponseWriter, r *http.Request) ([]error, bool) {
+	handled := false
+	disconnected := checkForClientDisconnection(w, r)
+	if disconnected != nil {
+		err := disconnected.(ErrorClientDisconnected)
+		ctx.Errors = append(ctx.Errors, err.CodeWithMessage())
+		handled = true
+	}
+	return ctx.Errors, handled
+
 }

@@ -46,6 +46,12 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 		case errcode.Error:
 			th.Errors = append(th.Errors, err)
 		default:
+			var handled bool
+			errs, handled := handleDisconnectionEvent(th.Context, w, r)
+			th.Errors = append(errs)
+			if handled {
+				return
+			}
 			th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		}
 		return

@@ -83,12 +83,14 @@ type manifestHandler struct {
 
 // GetManifest fetches the image manifest from the storage backend, if it exists.
 func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) {
+
 	dcontext.GetLogger(imh).Debug("GetImageManifest")
 	manifests, err := imh.Repository.Manifests(imh)
 	if err != nil {
 		imh.Errors = append(imh.Errors, err)
 		return
 	}
+
 	var supports [numStorageTypes]bool
 
 	// this parsing of Accept headers is not quite as full-featured as godoc.org's parser, but we don't care about "q=" values
@@ -126,6 +128,12 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 			if _, ok := err.(distribution.ErrTagUnknown); ok {
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 			} else {
+				var handled bool
+				errs, handled := handleDisconnectionEvent(imh.Context, w, r)
+				imh.Errors = append(errs)
+				if handled {
+					return
+				}
 				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 			}
 			return
@@ -147,6 +155,12 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 		} else {
+			var handled bool
+			errs, handled := handleDisconnectionEvent(imh.Context, w, r)
+			imh.Errors = append(errs)
+			if handled {
+				return
+			}
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		}
 		return
@@ -210,6 +224,12 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 			if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 			} else {
+				var handled bool
+				errs, handled := handleDisconnectionEvent(imh.Context, w, r)
+				imh.Errors = append(errs)
+				if handled {
+					return
+				}
 				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 			}
 			return
