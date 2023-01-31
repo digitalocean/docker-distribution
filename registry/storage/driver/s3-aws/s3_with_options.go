@@ -40,11 +40,13 @@ func (w *WithOptions) PutContent(ctx context.Context, path string, content []byt
 }
 
 func (w *WithOptions) Reader(ctx context.Context, path string, offset int64) (io.ReadCloser, error) {
-	return w.s3.Reader(ctx, path, offset)
+	reader, err := w.s3.Reader(ctx, path, offset)
+	return reader, checkS3RequestContextCancellation(err)
 }
 
 func (w *WithOptions) Writer(ctx context.Context, path string, append bool) (storagedriver.FileWriter, error) {
-	return w.s3.Writer(ctx, path, append)
+	writer, err := w.s3.Writer(ctx, path, append)
+	return writer, checkS3RequestContextCancellation(err)
 }
 
 func (w *WithOptions) Stat(ctx context.Context, path string) (storagedriver.FileInfo, error) {
