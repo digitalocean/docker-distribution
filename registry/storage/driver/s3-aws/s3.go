@@ -32,18 +32,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	dcontext "github.com/docker/distribution/context"
-	"github.com/docker/distribution/registry/client/transport"
-	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/docker/distribution/registry/storage/driver/base"
-	"github.com/docker/distribution/registry/storage/driver/factory"
+	dcontext "github.com/distribution/distribution/v3/context"
+	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/distribution/distribution/v3/registry/storage/driver/base"
+	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 )
 
 const driverName = "s3aws"
@@ -85,7 +82,7 @@ var validRegions = map[string]struct{}{}
 // validObjectACLs contains known s3 object Acls
 var validObjectACLs = map[string]struct{}{}
 
-//DriverParameters A struct that encapsulates all of the driver parameters after all values have been set
+// DriverParameters A struct that encapsulates all of the driver parameters after all values have been set
 type DriverParameters struct {
 	// S3 is an optional parameter. If specified, it will use the existing session
 	// to construct the Driver.
@@ -449,62 +446,53 @@ func New(params DriverParameters) (*Driver, error) {
 		}
 
 		awsConfig := aws.NewConfig()
-		sess, err := session.NewSession()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new session: %v", err)
+
+		if params.AccessKey != "" && params.SecretKey != "" {
+			creds := credentials.NewStaticCredentials(
+				params.AccessKey,
+				params.SecretKey,
+				params.SessionToken,
+			)
+			awsConfig.WithCredentials(creds)
 		}
-		creds := credentials.NewChainCredentials([]credentials.Provider{
-			&credentials.StaticProvider{
-				Value: credentials.Value{
-					AccessKeyID:     params.AccessKey,
-					SecretAccessKey: params.SecretKey,
-					SessionToken:    params.SessionToken,
-				},
-			},
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{},
-			&ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(sess)},
-		})
 
 		if params.RegionEndpoint != "" {
-			awsConfig.WithS3ForcePathStyle(true)
 			awsConfig.WithEndpoint(params.RegionEndpoint)
+			awsConfig.WithS3ForcePathStyle(params.ForcePathStyle)
 		}
 
-		awsConfig.WithCredentials(creds)
+		awsConfig.WithS3UseAccelerate(params.Accelerate)
 		awsConfig.WithRegion(params.Region)
 		awsConfig.WithDisableSSL(!params.Secure)
-
-		if params.UserAgent != "" || params.SkipVerify {
-			httpTransport := http.DefaultTransport
-			if params.SkipVerify {
-				httpTransport = &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				}
-			}
-			if params.UserAgent != "" {
-				awsConfig.WithHTTPClient(&http.Client{
-					Transport: transport.NewTransport(httpTransport, transport.NewHeaderRequestModifier(http.Header{http.CanonicalHeaderKey("User-Agent"): []string{params.UserAgent}})),
-				})
-			} else {
-				awsConfig.WithHTTPClient(&http.Client{
-					Transport: transport.NewTransport(httpTransport),
-				})
-			}
+		if params.UseDualStack {
+			awsConfig.UseDualStackEndpoint = endpoints.DualStackEndpointStateEnabled
 		}
 
-		sess, err = session.NewSession(awsConfig)
+		if params.SkipVerify {
+			httpTransport := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			awsConfig.WithHTTPClient(&http.Client{
+				Transport: httpTransport,
+			})
+		}
+
+		sess, err := session.NewSession(awsConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new session with aws config: %v", err)
 		}
-		s3obj = s3.New(sess)
+
+		if params.UserAgent != "" {
+			sess.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler(params.UserAgent))
+		}
+
+		s3obj := s3.New(sess)
 
 		// enable S3 compatible signature v2 signing instead
 		if !params.V4Auth {
 			setv2Handlers(s3obj)
 		}
 	}
-
 	// TODO Currently multipart uploads have no timestamps, so this would be unwise
 	// if you initiated a new s3driver while another one is running on the same bucket.
 	// multis, _, err := bucket.ListMulti("", "")
@@ -762,7 +750,7 @@ func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo,
 		Prefix:  aws.String(d.s3Path(path)),
 		MaxKeys: aws.Int64(1),
 	})
-  
+
 	if err != nil {
 		return nil, err
 	}
@@ -1211,15 +1199,24 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 // the previous and current paths in sorted order.
 //
 // Eg 1 directoryDiff("/path/to/folder", "/path/to/folder/folder/file")
-//   => [ "/path/to/folder/folder" ],
+//
+//	=> [ "/path/to/folder/folder" ],
+//
 // Eg 2 directoryDiff("/path/to/folder/folder1", "/path/to/folder/folder2/file")
-//   => [ "/path/to/folder/folder2" ]
+//
+//	=> [ "/path/to/folder/folder2" ]
+//
 // Eg 3 directoryDiff("/path/to/folder/folder1/file", "/path/to/folder/folder2/file")
-//  => [ "/path/to/folder/folder2" ]
+//
+//	=> [ "/path/to/folder/folder2" ]
+//
 // Eg 4 directoryDiff("/path/to/folder/folder1/file", "/path/to/folder/folder2/folder1/file")
-//   => [ "/path/to/folder/folder2", "/path/to/folder/folder2/folder1" ]
+//
+//	=> [ "/path/to/folder/folder2", "/path/to/folder/folder2/folder1" ]
+//
 // Eg 5 directoryDiff("/", "/path/to/folder/folder/file")
-//   => [ "/path", "/path/to", "/path/to/folder", "/path/to/folder/folder" ],
+//
+//	=> [ "/path", "/path/to", "/path/to/folder", "/path/to/folder/folder" ],
 func directoryDiff(prev, current string) []string {
 	var paths []string
 
