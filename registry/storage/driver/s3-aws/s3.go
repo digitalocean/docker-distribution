@@ -672,11 +672,11 @@ func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.Read
 
 // Writer returns a FileWriter which will store the content written to it
 // at the location designated by "path" after the call to Commit.
-func (d *driver) Writer(ctx context.Context, path string, append bool) (storagedriver.FileWriter, error) {
+func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (storagedriver.FileWriter, error) {
 	s := d.s3Client(ctx)
 
 	key := d.s3Path(path)
-	if !append {
+	if !appendParam {
 		// TODO (brianbland): cancel other uploads at this path
 		resp, err := s.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 			Bucket:               aws.String(d.Bucket),
@@ -692,31 +692,62 @@ func (d *driver) Writer(ctx context.Context, path string, append bool) (storaged
 		}
 		return d.newWriter(key, *resp.UploadId, nil), nil
 	}
-	resp, err := s.ListMultipartUploads(&s3.ListMultipartUploadsInput{
+
+	listMultipartUploadsInput := &s3.ListMultipartUploadsInput{
 		Bucket: aws.String(d.Bucket),
 		Prefix: aws.String(key),
-	})
-	if err != nil {
-		return nil, parseError(path, err)
 	}
-
-	for _, multi := range resp.Uploads {
-		if key != *multi.Key {
-			continue
-		}
-		resp, err := s.ListParts(&s3.ListPartsInput{
-			Bucket:   aws.String(d.Bucket),
-			Key:      aws.String(key),
-			UploadId: multi.UploadId,
-		})
+	for {
+		resp, err := d.S3.ListMultipartUploads(listMultipartUploadsInput)
 		if err != nil {
 			return nil, parseError(path, err)
 		}
-		var multiSize int64
-		for _, part := range resp.Parts {
-			multiSize += *part.Size
+
+		// resp.Uploads can only be empty on the first call
+		// if there were no more results to return after the first call, resp.IsTruncated would have been false
+		// and the loop would be exited without recalling ListMultipartUploads
+		if len(resp.Uploads) == 0 {
+			break
 		}
-		return d.newWriter(key, *multi.UploadId, resp.Parts), nil
+
+		var allParts []*s3.Part
+		for _, multi := range resp.Uploads {
+			if key != *multi.Key {
+				continue
+			}
+
+			partsList, err := d.S3.ListParts(&s3.ListPartsInput{
+				Bucket:   aws.String(d.Bucket),
+				Key:      aws.String(key),
+				UploadId: multi.UploadId,
+			})
+			if err != nil {
+				return nil, parseError(path, err)
+			}
+			allParts = append(allParts, partsList.Parts...)
+			for *partsList.IsTruncated {
+				partsList, err = d.S3.ListParts(&s3.ListPartsInput{
+					Bucket:           aws.String(d.Bucket),
+					Key:              aws.String(key),
+					UploadId:         multi.UploadId,
+					PartNumberMarker: partsList.NextPartNumberMarker,
+				})
+				if err != nil {
+					return nil, parseError(path, err)
+				}
+				allParts = append(allParts, partsList.Parts...)
+			}
+			return d.newWriter(key, *multi.UploadId, allParts), nil
+		}
+
+		// resp.NextUploadIdMarker must have at least one element or we would have returned not found
+		listMultipartUploadsInput.UploadIdMarker = resp.NextUploadIdMarker
+
+		// from the s3 api docs, IsTruncated "specifies whether (true) or not (false) all of the results were returned"
+		// if everything has been returned, break
+		if resp.IsTruncated == nil || !*resp.IsTruncated {
+			break
+		}
 	}
 	return nil, storagedriver.PathNotFoundError{Path: path}
 }
