@@ -703,7 +703,7 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 		Prefix: aws.String(key),
 	}
 	for {
-		resp, err := d.S3.ListMultipartUploads(listMultipartUploadsInput)
+		resp, err := s.ListMultipartUploads(listMultipartUploadsInput)
 		if err != nil {
 			return nil, parseError(path, err)
 		}
@@ -721,7 +721,7 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 				continue
 			}
 
-			partsList, err := d.S3.ListParts(&s3.ListPartsInput{
+			partsList, err := s.ListParts(&s3.ListPartsInput{
 				Bucket:   aws.String(d.Bucket),
 				Key:      aws.String(key),
 				UploadId: multi.UploadId,
@@ -731,7 +731,7 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 			}
 			allParts = append(allParts, partsList.Parts...)
 			for *partsList.IsTruncated {
-				partsList, err = d.S3.ListParts(&s3.ListPartsInput{
+				partsList, err = s.ListParts(&s3.ListPartsInput{
 					Bucket:           aws.String(d.Bucket),
 					Key:              aws.String(key),
 					UploadId:         multi.UploadId,
@@ -781,7 +781,7 @@ func (d *driver) Stat(ctx context.Context, path string) (storagedriver.FileInfo,
 		return storagedriver.FileInfoInternal{FileInfoFields: fi}, nil
 	}
 
-	resp, err := s.ListObjectsWithContext(ctx, &s3.ListObjectsInput{
+	resp, err := s.ListObjectsV2WithContext(ctx, &s3.ListObjectsV2Input{
 		Bucket:  aws.String(d.Bucket),
 		Prefix:  aws.String(d.s3Path(path)),
 		MaxKeys: aws.Int64(1),
@@ -825,7 +825,7 @@ func (d *driver) List(ctx context.Context, opath string) ([]string, error) {
 		prefix = "/"
 	}
 
-	resp, err := s.ListObjects(&s3.ListObjectsInput{
+	resp, err := s.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket:    aws.String(d.Bucket),
 		Prefix:    aws.String(d.s3Path(path)),
 		Delimiter: aws.String("/"),
@@ -849,12 +849,12 @@ func (d *driver) List(ctx context.Context, opath string) ([]string, error) {
 		}
 
 		if *resp.IsTruncated {
-			resp, err = s.ListObjects(&s3.ListObjectsInput{
-				Bucket:    aws.String(d.Bucket),
-				Prefix:    aws.String(d.s3Path(path)),
-				Delimiter: aws.String("/"),
-				MaxKeys:   aws.Int64(listMax),
-				Marker:    resp.NextMarker,
+			resp, err = s.ListObjectsV2(&s3.ListObjectsV2Input{
+				Bucket:            aws.String(d.Bucket),
+				Prefix:            aws.String(d.s3Path(path)),
+				Delimiter:         aws.String("/"),
+				MaxKeys:           aws.Int64(listMax),
+				ContinuationToken: resp.NextContinuationToken,
 			})
 			if err != nil {
 				return nil, err
@@ -1011,16 +1011,16 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 	}
 
 	s := d.s3Client(ctx)
-ListLoop:
+
 	for {
 		// list all the objects
-		resp, err := s.ListObjects(listObjectsInput)
+		resp, err := s.ListObjectsV2(listObjectsInput)
 
 		// resp.Contents can only be empty on the first call
 		// if there were no more results to return after the first call, resp.IsTruncated would have been false
 		// and the loop would be exited without recalling ListObjects
 		if err != nil || len(resp.Contents) == 0 {
-			break ListLoop
+			return storagedriver.PathNotFoundError{Path: path}
 		}
 
 		for _, key := range resp.Contents {
@@ -1028,6 +1028,40 @@ ListLoop:
 				Key: key.Key,
 			})
 		}
+
+		// Delete objects only if the list is not empty, otherwise S3 API returns a cryptic error
+		if len(s3Objects) > 0 {
+			// NOTE: according to AWS docs https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html
+			// by default the response returns up to 1,000 key names. The response _might_ contain fewer keys but it will never contain more.
+			// 10000 keys is coincidentally (?) also the max number of keys that can be deleted in a single Delete operation, so we'll just smack
+			// Delete here straight away and reset the object slice when successful.
+			resp, err := s.DeleteObjects(&s3.DeleteObjectsInput{
+				Bucket: aws.String(d.Bucket),
+				Delete: &s3.Delete{
+					Objects: s3Objects,
+					Quiet:   aws.Bool(false),
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			if len(resp.Errors) > 0 {
+				// NOTE: AWS SDK s3.Error does not implement error interface which
+				// is pretty intensely sad, so we have to do away with this for now.
+				errs := make([]error, 0, len(resp.Errors))
+				for _, err := range resp.Errors {
+					errs = append(errs, errors.New(err.String()))
+				}
+				return storagedriver.Errors{
+					DriverName: driverName,
+					Errs:       errs,
+				}
+			}
+		}
+		// NOTE: we don't want to reallocate
+		// the slice so we simply "reset" it
+		s3Objects = s3Objects[:0]
 
 		// resp.Contents must have at least one element or we would have returned not found
 		listObjectsInput.Marker = resp.Contents[len(resp.Contents)-1].Key
@@ -1071,7 +1105,7 @@ ListLoop:
 func (d *driver) URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error) {
 	s := d.s3Client(ctx)
 
-	methodString := "GET"
+	methodString := http.MethodGet
 	method, ok := options["method"]
 	if ok {
 		methodString, ok = method.(string)
@@ -1092,12 +1126,12 @@ func (d *driver) URLFor(ctx context.Context, path string, options map[string]int
 	var req *request.Request
 
 	switch methodString {
-	case "GET":
+	case http.MethodGet:
 		req, _ = s.GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(d.Bucket),
 			Key:    aws.String(d.s3Path(path)),
 		})
-	case "HEAD":
+	case http.MethodHead:
 		req, _ = s.HeadObjectRequest(&s3.HeadObjectInput{
 			Bucket: aws.String(d.Bucket),
 			Key:    aws.String(d.s3Path(path)),
