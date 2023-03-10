@@ -1,12 +1,11 @@
 module github.com/docker/distribution
 
-go 1.12
+go 1.18
 
 require (
 	github.com/Azure/azure-sdk-for-go v56.3.0+incompatible
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d
 	github.com/aws/aws-sdk-go v1.43.16
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bshuster-repo/logrus-logstash-hook v1.0.0
 	github.com/bugsnag/bugsnag-go v0.0.0-20141110184014-b1d153021fcd
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba
@@ -30,4 +29,44 @@ require (
 	google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	cloud.google.com/go v0.65.0 // indirect
+	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
+	github.com/Azure/go-autorest/autorest v0.11.24 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
+	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
+	github.com/Azure/go-autorest/logger v0.2.1 // indirect
+	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
+	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
+	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
+	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/text v0.1.0 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/prometheus/client_golang v1.12.1 // indirect
+	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/yvasiyarov/go-metrics v0.0.0-20140926110328-57bccd1ccd43 // indirect
+	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f // indirect
+	go.opencensus.io v0.22.4 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	google.golang.org/appengine v1.6.6 // indirect
+	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
+	google.golang.org/grpc v1.31.0 // indirect
+	google.golang.org/protobuf v1.26.0 // indirect
 )
