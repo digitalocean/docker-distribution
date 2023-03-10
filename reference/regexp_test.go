@@ -548,6 +548,6 @@ func TestIdentifierRegexp(t *testing.T) {
 	}
 
 	for i := range shortCases {
-		checkRegexp(t, anchoredShortIdentifierRegexp, shortCases[i])
+		checkRegexp(t, anchoredIdentifierRegexp, shortCases[i])
 	}
 }

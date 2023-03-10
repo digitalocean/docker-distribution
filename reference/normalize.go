@@ -184,7 +184,7 @@ func ParseAnyReference(ref string) (Reference, error) {
 // ParseAnyReferenceWithSet parses a reference string as a possible short
 // identifier to be matched in a digest set, a full digest, or familiar name.
 func ParseAnyReferenceWithSet(ref string, ds *digestset.Set) (Reference, error) {
-	if ok := anchoredShortIdentifierRegexp.MatchString(ref); ok {
+	if ok := anchoredIdentifierRegexp.MatchString(ref); ok {
 		dgst, err := ds.Lookup(ref)
 		if err == nil {
 			return digestReference(dgst), nil
