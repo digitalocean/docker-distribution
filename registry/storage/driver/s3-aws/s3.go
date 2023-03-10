@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"path/filepath"
@@ -37,10 +36,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	dcontext "github.com/distribution/distribution/v3/context"
-	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/registry/storage/driver/base"
-	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
+	dcontext "github.com/docker/distribution/context"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/distribution/registry/storage/driver/base"
+	"github.com/docker/distribution/registry/storage/driver/factory"
 )
 
 const driverName = "s3aws"
@@ -76,6 +75,18 @@ const listMax = 1000
 // noStorageClass defines the value to be used if storage class is not supported by the S3 endpoint
 const noStorageClass = "NONE"
 
+// s3StorageClasses lists all compatible (instant retrieval) S3 storage classes
+var s3StorageClasses = []string{
+	noStorageClass,
+	s3.StorageClassStandard,
+	s3.StorageClassReducedRedundancy,
+	s3.StorageClassStandardIa,
+	s3.StorageClassOnezoneIa,
+	s3.StorageClassIntelligentTiering,
+	s3.StorageClassOutposts,
+	s3.StorageClassGlacierIr,
+}
+
 // validRegions maps known s3 region identifiers to region descriptors
 var validRegions = map[string]struct{}{}
 
@@ -93,6 +104,7 @@ type DriverParameters struct {
 	Bucket                      string
 	Region                      string
 	RegionEndpoint              string
+	ForcePathStyle              bool
 	Encrypt                     bool
 	KeyID                       string
 	Secure                      bool
@@ -102,6 +114,7 @@ type DriverParameters struct {
 	MultipartCopyChunkSize      int64
 	MultipartCopyMaxConcurrency int64
 	MultipartCopyThresholdSize  int64
+	MultipartCombineSmallPart   bool
 	RootDirectory               string
 	StorageClass                string
 	UserAgent                   string
@@ -154,6 +167,7 @@ type driver struct {
 	MultipartCopyChunkSize      int64
 	MultipartCopyMaxConcurrency int64
 	MultipartCopyThresholdSize  int64
+	MultipartCombineSmallPart   bool
 	RootDirectory               string
 	StorageClass                string
 	ObjectACL                   string
@@ -194,6 +208,23 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 	regionEndpoint := parameters["regionendpoint"]
 	if regionEndpoint == nil {
 		regionEndpoint = ""
+	}
+
+	forcePathStyleBool := true
+	forcePathStyle := parameters["forcepathstyle"]
+	switch forcePathStyle := forcePathStyle.(type) {
+	case string:
+		b, err := strconv.ParseBool(forcePathStyle)
+		if err != nil {
+			return nil, fmt.Errorf("the forcePathStyle parameter should be a boolean")
+		}
+		forcePathStyleBool = b
+	case bool:
+		forcePathStyleBool = forcePathStyle
+	case nil:
+		// do nothing
+	default:
+		return nil, fmt.Errorf("the forcePathStyle parameter should be a boolean")
 	}
 
 	regionName := parameters["region"]
@@ -316,16 +347,27 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 	if storageClassParam != nil {
 		storageClassString, ok := storageClassParam.(string)
 		if !ok {
-			return nil, fmt.Errorf("the storageclass parameter must be one of %v, %v invalid",
-				[]string{s3.StorageClassStandard, s3.StorageClassReducedRedundancy}, storageClassParam)
+			return nil, fmt.Errorf(
+				"the storageclass parameter must be one of %v, %v invalid",
+				s3StorageClasses,
+				storageClassParam,
+			)
 		}
 		// All valid storage class parameters are UPPERCASE, so be a bit more flexible here
 		storageClassString = strings.ToUpper(storageClassString)
 		if storageClassString != noStorageClass &&
 			storageClassString != s3.StorageClassStandard &&
-			storageClassString != s3.StorageClassReducedRedundancy {
-			return nil, fmt.Errorf("the storageclass parameter must be one of %v, %v invalid",
-				[]string{noStorageClass, s3.StorageClassStandard, s3.StorageClassReducedRedundancy}, storageClassParam)
+			storageClassString != s3.StorageClassReducedRedundancy &&
+			storageClassString != s3.StorageClassStandardIa &&
+			storageClassString != s3.StorageClassOnezoneIa &&
+			storageClassString != s3.StorageClassIntelligentTiering &&
+			storageClassString != s3.StorageClassOutposts &&
+			storageClassString != s3.StorageClassGlacierIr {
+			return nil, fmt.Errorf(
+				"the storageclass parameter must be one of %v, %v invalid",
+				s3StorageClasses,
+				storageClassParam,
+			)
 		}
 		storageClass = storageClassString
 	}
@@ -333,6 +375,73 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 	userAgent := parameters["useragent"]
 	if userAgent == nil {
 		userAgent = ""
+	}
+
+	objectACL := s3.ObjectCannedACLPrivate
+	objectACLParam := parameters["objectacl"]
+	if objectACLParam != nil {
+		objectACLString, ok := objectACLParam.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid value for objectacl parameter: %v", objectACLParam)
+		}
+
+		if _, ok = validObjectACLs[objectACLString]; !ok {
+			return nil, fmt.Errorf("invalid value for objectacl parameter: %v", objectACLParam)
+		}
+		objectACL = objectACLString
+	}
+
+	useDualStackBool := false
+	useDualStack := parameters["usedualstack"]
+	switch useDualStack := useDualStack.(type) {
+	case string:
+		b, err := strconv.ParseBool(useDualStack)
+		if err != nil {
+			return nil, fmt.Errorf("the useDualStack parameter should be a boolean")
+		}
+		useDualStackBool = b
+	case bool:
+		useDualStackBool = useDualStack
+	case nil:
+		// do nothing
+	default:
+		return nil, fmt.Errorf("the useDualStack parameter should be a boolean")
+	}
+
+	mutlipartCombineSmallPart := true
+	combine := parameters["multipartcombinesmallpart"]
+	switch combine := combine.(type) {
+	case string:
+		b, err := strconv.ParseBool(combine)
+		if err != nil {
+			return nil, fmt.Errorf("the multipartcombinesmallpart parameter should be a boolean")
+		}
+		mutlipartCombineSmallPart = b
+	case bool:
+		mutlipartCombineSmallPart = combine
+	case nil:
+		// do nothing
+	default:
+		return nil, fmt.Errorf("the multipartcombinesmallpart parameter should be a boolean")
+	}
+
+	sessionToken := ""
+
+	accelerateBool := false
+	accelerate := parameters["accelerate"]
+	switch accelerate := accelerate.(type) {
+	case string:
+		b, err := strconv.ParseBool(accelerate)
+		if err != nil {
+			return nil, fmt.Errorf("the accelerate parameter should be a boolean")
+		}
+		accelerateBool = b
+	case bool:
+		accelerateBool = accelerate
+	case nil:
+		// do nothing
+	default:
+		return nil, fmt.Errorf("the accelerate parameter should be a boolean")
 	}
 
 	logS3APIRequestsBool := false
@@ -363,22 +472,6 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 		return nil, fmt.Errorf("the logS3APIResponseHeaders parameter should be a map[string]string")
 	}
 
-	objectACL := s3.ObjectCannedACLPrivate
-	objectACLParam := parameters["objectacl"]
-	if objectACLParam != nil {
-		objectACLString, ok := objectACLParam.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid value for objectacl parameter: %v", objectACLParam)
-		}
-
-		if _, ok = validObjectACLs[objectACLString]; !ok {
-			return nil, fmt.Errorf("invalid value for objectacl parameter: %v", objectACLParam)
-		}
-		objectACL = objectACLString
-	}
-
-	sessionToken := ""
-
 	params := DriverParameters{
 		nil,
 		fmt.Sprint(accessKey),
@@ -386,6 +479,7 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 		fmt.Sprint(bucket),
 		region,
 		fmt.Sprint(regionEndpoint),
+		forcePathStyleBool,
 		encryptBool,
 		fmt.Sprint(keyID),
 		secureBool,
@@ -395,6 +489,7 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 		multipartCopyChunkSize,
 		multipartCopyMaxConcurrency,
 		multipartCopyThresholdSize,
+		mutlipartCombineSmallPart,
 		fmt.Sprint(rootDirectory),
 		storageClass,
 		fmt.Sprint(userAgent),
@@ -522,6 +617,7 @@ func New(params DriverParameters) (*Driver, error) {
 		MultipartCopyChunkSize:      params.MultipartCopyChunkSize,
 		MultipartCopyMaxConcurrency: params.MultipartCopyMaxConcurrency,
 		MultipartCopyThresholdSize:  params.MultipartCopyThresholdSize,
+		MultipartCombineSmallPart:   params.MultipartCombineSmallPart,
 		RootDirectory:               params.RootDirectory,
 		StorageClass:                params.StorageClass,
 		ObjectACL:                   params.ObjectACL,
@@ -634,7 +730,7 @@ func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }
 
 // PutContent stores the []byte content at a location designated by "path".
@@ -667,7 +763,7 @@ func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.Read
 
 	if err != nil {
 		if s3Err, ok := err.(awserr.Error); ok && s3Err.Code() == "InvalidRange" {
-			return ioutil.NopCloser(bytes.NewReader(nil)), nil
+			return io.NopCloser(bytes.NewReader(nil)), nil
 		}
 
 		return nil, parseError(path, err)
@@ -979,33 +1075,12 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 	return err
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // Delete recursively deletes all objects stored at "path" and its subpaths.
 // We must be careful since S3 does not guarantee read after delete consistency
 func (d *driver) Delete(ctx context.Context, path string) error {
 	s3Objects := make([]*s3.ObjectIdentifier, 0, listMax)
-
-	// manually add the given path if it's a file
-	stat, err := d.Stat(ctx, path)
-	if err != nil {
-		return err
-	}
-	if stat != nil && !stat.IsDir() {
-		path := d.s3Path(path)
-		s3Objects = append(s3Objects, &s3.ObjectIdentifier{
-			Key: &path,
-		})
-	}
-
-	// list objects under the given path as a subpath (suffix with slash "/")
-	s3Path := d.s3Path(path) + "/"
-	listObjectsInput := &s3.ListObjectsInput{
+	s3Path := d.s3Path(path)
+	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket: aws.String(d.Bucket),
 		Prefix: aws.String(s3Path),
 	}
@@ -1024,6 +1099,10 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		}
 
 		for _, key := range resp.Contents {
+			// Skip if we encounter a key that is not a subpath (so that deleting "/a" does not delete "/ab").
+			if len(*key.Key) > len(s3Path) && (*key.Key)[len(s3Path)] != '/' {
+				continue
+			}
 			s3Objects = append(s3Objects, &s3.ObjectIdentifier{
 				Key: key.Key,
 			})
@@ -1064,7 +1143,7 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		s3Objects = s3Objects[:0]
 
 		// resp.Contents must have at least one element or we would have returned not found
-		listObjectsInput.Marker = resp.Contents[len(resp.Contents)-1].Key
+		listObjectsInput.StartAfter = resp.Contents[len(resp.Contents)-1].Key
 
 		// from the s3 api docs, IsTruncated "specifies whether (true) or not (false) all of the results were returned"
 		// if everything has been returned, break
@@ -1073,30 +1152,6 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		}
 	}
 
-	total := len(s3Objects)
-	if total == 0 {
-		return storagedriver.PathNotFoundError{Path: path}
-	}
-
-	// need to chunk objects into groups of 1000 per s3 restrictions
-	for i := 0; i < total; i += 1000 {
-		output, err := s.DeleteObjects(&s3.DeleteObjectsInput{
-			Bucket: aws.String(d.Bucket),
-			Delete: &s3.Delete{
-				Objects: s3Objects[i:min(i+1000, total)],
-				Quiet:   aws.Bool(false),
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if output.Errors != nil && len(output.Errors) > 0 {
-			// ideally all errors would be returned in some way
-			// until then, at least pass back the first error code
-			oErr := output.Errors[0]
-			return errors.New(*oErr.Code)
-		}
-	}
 	return nil
 }
 
@@ -1467,7 +1522,7 @@ func (w *writer) Write(p []byte) (int, error) {
 			}
 			defer resp.Body.Close()
 			w.parts = nil
-			w.readyPart, err = ioutil.ReadAll(resp.Body)
+			w.readyPart, err = io.ReadAll(resp.Body)
 			if err != nil {
 				return 0, err
 			}
@@ -1607,7 +1662,7 @@ func (w *writer) flushPart() error {
 		// nothing to write
 		return nil
 	}
-	if len(w.pendingPart) < int(w.driver.ChunkSize) {
+	if w.driver.MultipartCombineSmallPart && len(w.pendingPart) < int(w.driver.ChunkSize) {
 		// closing with a small pending part
 		// combine ready and pending to avoid writing a small part
 		w.readyPart = append(w.readyPart, w.pendingPart...)

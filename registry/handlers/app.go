@@ -633,6 +633,13 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = dcontext.WithLogger(ctx, dcontext.GetRequestLogger(ctx))
 	r = r.WithContext(ctx)
 
+	defer func() {
+		status, ok := ctx.Value("http.response.status").(int)
+		if ok && status >= 200 && status <= 399 {
+			dcontext.GetResponseLogger(r.Context()).Infof("response completed")
+		}
+	}()
+
 	// Set a header with the Docker Distribution API Version for all responses.
 	w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
 	app.router.ServeHTTP(w, r)
