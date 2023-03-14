@@ -1,4 +1,4 @@
-module github.com/distribution/distribution/v3
+module github.com/docker/distribution
 
 go 1.18
 
@@ -19,7 +19,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/prometheus/client_golang v1.12.1 // indirect; updated to latest
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
@@ -48,7 +48,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.1.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -63,4 +63,21 @@ require (
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	google.golang.org/grpc v1.31.0 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
+)
+
+require (
+	github.com/Shopify/logrus-bugsnag v0.0.0-20230117174420-439a4b8ba167
+	github.com/bshuster-repo/logrus-logstash-hook v1.1.0
+	github.com/bugsnag/bugsnag-go v2.2.0+incompatible
+	github.com/yvasiyarov/gorelic v0.0.7
+)
+
+require (
+	github.com/bugsnag/bugsnag-go/v2 v2.2.0 // indirect
+	github.com/bugsnag/panicwrap v1.3.4 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
+	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 )
