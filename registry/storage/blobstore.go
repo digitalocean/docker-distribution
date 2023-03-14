@@ -5,9 +5,9 @@ import (
 	"io"
 	"path"
 
-	"github.com/distribution/distribution/v3"
-	dcontext "github.com/distribution/distribution/v3/context"
-	"github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/docker/distribution"
+	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -94,7 +94,7 @@ func (bs *blobStore) Enumerate(ctx context.Context, ingester func(dgst digest.Di
 		return err
 	}
 
-	return bs.driver.WalkFiles(ctx, specPath, func(fileInfo driver.FileInfo) error {
+	return bs.driver.Walk(ctx, specPath, func(fileInfo driver.FileInfo) error {
 		currentPath := fileInfo.Path()
 		// we only want to parse paths that end with /data
 		_, fileName := path.Split(currentPath)

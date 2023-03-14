@@ -20,7 +20,7 @@ import (
 	events "github.com/docker/go-events"
 	"github.com/docker/go-metrics"
 	"github.com/docker/libtrust"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
@@ -673,7 +673,6 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 			}
 		}
 		context := app.context(w, r)
-<<<<<<< HEAD
 
 		defer func() {
 			// Automated error response handling here. Handlers may return their
@@ -687,8 +686,6 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 			}
 		}()
 
-=======
->>>>>>> fcff6029 (DOCR-404 Enable True IP Client Header for DOCR)
 		if err := app.authorized(w, r, context); err != nil {
 			dcontext.GetLogger(context).Warnf("error authorizing context: %v", err)
 			return
