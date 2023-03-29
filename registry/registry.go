@@ -346,6 +346,10 @@ func configureLogging(ctx context.Context, config *configuration.Configuration) 
 	logrus.SetLevel(logLevel(config.Log.Level))
 
 	formatter := config.Log.Formatter
+	if formatter == "" {
+		formatter = defaultLogFormatter
+	}
+
 	switch formatter {
 	case "json":
 		logrus.SetFormatter(&logrus.JSONFormatter{
