@@ -1078,21 +1078,7 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 // We must be careful since S3 does not guarantee read after delete consistency
 func (d *driver) Delete(ctx context.Context, path string) error {
 	s3Objects := make([]*s3.ObjectIdentifier, 0, listMax)
-
-	// manually add the given path if it's a file
-	stat, err := d.Stat(ctx, path)
-	if err != nil {
-		return err
-	}
-	if stat != nil && !stat.IsDir() {
-		path := d.s3Path(path)
-		s3Objects = append(s3Objects, &s3.ObjectIdentifier{
-			Key: &path,
-		})
-	}
-
-	// list objects under the given path as a subpath (suffix with slash "/")
-	s3Path := d.s3Path(path) + "/"
+	s3Path := d.s3Path(path)
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket: aws.String(d.Bucket),
 		Prefix: aws.String(s3Path),
