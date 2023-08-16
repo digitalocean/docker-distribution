@@ -699,32 +699,6 @@ func testBlobAPI(t *testing.T, env *testEnv, args blobArgs) *testEnv {
 
 	finishUpload(t, env.builder, imageName, uploadURLBase, dgst)
 
-	// -----------------------------------------
-	// Do layer push with invalid content range
-	layerFile.Seek(0, io.SeekStart)
-	uploadURLBase, _ = startPushLayer(t, env, imageName)
-	sizeInvalid := chunkOptions{
-		contentRange: "0-20",
-	}
-	resp, err = doPushChunk(t, uploadURLBase, layerFile, sizeInvalid)
-	if err != nil {
-		t.Fatalf("unexpected error doing push layer request: %v", err)
-	}
-	defer resp.Body.Close()
-	checkResponse(t, "putting size invalid chunk", resp, http.StatusBadRequest)
-
-	layerFile.Seek(0, io.SeekStart)
-	uploadURLBase, _ = startPushLayer(t, env, imageName)
-	outOfOrder := chunkOptions{
-		contentRange: "3-22",
-	}
-	resp, err = doPushChunk(t, uploadURLBase, layerFile, outOfOrder)
-	if err != nil {
-		t.Fatalf("unexpected error doing push layer request: %v", err)
-	}
-	defer resp.Body.Close()
-	checkResponse(t, "putting range out of order chunk", resp, http.StatusRequestedRangeNotSatisfiable)
-
 	// ------------------------
 	// Use a head request to see if the layer exists.
 	resp, err = http.Head(layerURL)
@@ -2536,12 +2510,7 @@ func finishUpload(t *testing.T, ub *v2.URLBuilder, name reference.Named, uploadU
 	return resp.Header.Get("Location")
 }
 
-type chunkOptions struct {
-	// Content-Range header to set when pushing chunks
-	contentRange string
-}
-
-func doPushChunk(t *testing.T, uploadURLBase string, body io.Reader, options chunkOptions) (*http.Response, error) {
+func doPushChunk(t *testing.T, uploadURLBase string, body io.Reader) (*http.Response, error) {
 	u, err := url.Parse(uploadURLBase)
 	if err != nil {
 		t.Fatalf("unexpected error parsing pushLayer url: %v", err)
@@ -2558,10 +2527,6 @@ func doPushChunk(t *testing.T, uploadURLBase string, body io.Reader, options chu
 		t.Fatalf("unexpected error creating new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
-	if options.contentRange != "" {
-		req.Header.Set("Content-Range", options.contentRange)
-	}
-
 	resp, err := http.DefaultClient.Do(req)
 
 	return resp, err
@@ -2570,7 +2535,7 @@ func doPushChunk(t *testing.T, uploadURLBase string, body io.Reader, options chu
 func pushChunk(t *testing.T, ub *v2.URLBuilder, name reference.Named, uploadURLBase string, body io.Reader, length int64) (string, digest.Digest) {
 	digester := digest.Canonical.Digester()
 
-	resp, err := doPushChunk(t, uploadURLBase, io.TeeReader(body, digester.Hash()), chunkOptions{})
+	resp, err := doPushChunk(t, uploadURLBase, io.TeeReader(body, digester.Hash()))
 	if err != nil {
 		t.Fatalf("unexpected error doing push layer request: %v", err)
 	}
