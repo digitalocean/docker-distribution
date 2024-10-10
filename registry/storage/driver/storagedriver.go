@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // Version is a string representing the storage driver version, of the form
@@ -211,4 +213,10 @@ func (e Errors) Error() string {
 		}
 		return msg
 	}
+}
+
+// StorageDriverV2 extends StorageDriver
+type StorageDriverV2 interface {
+	StorageDriver
+	BulkDelete(ctx context.Context, path []string) (*s3.DeleteObjectsOutput, error)
 }

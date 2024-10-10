@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/base"
 	"github.com/docker/distribution/registry/storage/driver/factory"
@@ -236,6 +238,24 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 	}
 }
 
+// BulkDelete deletes all objects passed in paths.
+func (d *driver) BulkDelete(ctx context.Context, paths []string) (*s3.DeleteObjectsOutput, error) {
+	var response s3.DeleteObjectsOutput
+	for _, path := range paths {
+		err := d.Delete(ctx, path)
+		if err != nil {
+			response.Errors = append(response.Errors, &s3.Error{
+				Key: aws.String(path),
+			})
+		}
+		response.Deleted = append(response.Deleted, &s3.DeletedObject{
+			Key: aws.String(path),
+		})
+	}
+
+	return &response, nil
+}
+
 // URLFor returns a URL which may be used to retrieve the content stored at the given path.
 // May return an UnsupportedMethodErr in certain StorageDriver implementations.
 func (d *driver) URLFor(ctx context.Context, path string, options map[string]interface{}) (string, error) {
@@ -341,4 +361,25 @@ func (w *writer) flush() {
 	w.f.WriteAt(w.buffer, int64(len(w.f.data)))
 	w.buffer = []byte{}
 	w.buffSize = 0
+}
+
+// DriverV2 embeds driver
+type DriverV2 struct {
+	storagedriver.StorageDriverV2
+}
+
+// NewV2 constructs a new DriverV2.
+func NewV2() *DriverV2 {
+	d := &driver{
+		root: &dir{
+			common: common{
+				p:   "/",
+				mod: time.Now(),
+			},
+		},
+	}
+
+	return &DriverV2{
+		d,
+	}
 }
