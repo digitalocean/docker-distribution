@@ -166,7 +166,7 @@ func NewRegistry(ctx context.Context, config *configuration.Configuration) (*Reg
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       60 * time.Minute,
 		WriteTimeout:      60 * time.Minute,
-		IdleTimeout:       60 * time.Minute,
+		IdleTimeout:       5 * time.Minute,
 	}
 
 	return &Registry{
