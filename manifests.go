@@ -61,6 +61,10 @@ type ManifestService interface {
 	// Delete removes the manifest specified by the given digest. Deleting
 	// a manifest that doesn't exist will return ErrManifestNotFound
 	Delete(ctx context.Context, dgst digest.Digest) error
+
+	// Stat provides metadata about a manifest identified by the digest. If the
+	// manifest is unknown to the describer, ErrManifestUnknownRevision will be returned.
+	Stat(ctx context.Context, dgst digest.Digest) (Descriptor, error)
 }
 
 // ManifestEnumerator enables iterating over manifests

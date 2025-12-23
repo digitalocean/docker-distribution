@@ -72,6 +72,24 @@ func (ms *manifestStore) Exists(ctx context.Context, dgst digest.Digest) (bool, 
 	return true, nil
 }
 
+func (ms *manifestStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Exists")
+
+	descriptor, err := ms.blobStore.Stat(ctx, dgst)
+	if err != nil {
+		if err == distribution.ErrBlobUnknown {
+			return distribution.Descriptor{}, distribution.ErrManifestUnknownRevision{
+				Name:     ms.repository.Named().Name(),
+				Revision: dgst,
+			}
+		}
+
+		return distribution.Descriptor{}, err
+	}
+
+	return descriptor, nil
+}
+
 func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Get")
 
