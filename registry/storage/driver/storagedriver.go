@@ -178,6 +178,16 @@ func (err UserSuspendedError) Error() string {
 	return fmt.Sprintf("%s: user is suspended", err.DriverName)
 }
 
+// InvalidAccessKeyIdError is returned when an invalided access key and/or secret key
+// is provided to the S3 api.
+type InvalidAccessKeyIdError struct {
+	DriverName string
+}
+
+func (err InvalidAccessKeyIdError) Error() string {
+	return fmt.Sprintf("%s: access key and secret key is invalid", err.DriverName)
+}
+
 // Error is a catch-all error type which captures an error string and
 // the driver type on which it occurred.
 type Error struct {

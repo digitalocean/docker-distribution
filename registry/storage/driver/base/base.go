@@ -84,6 +84,9 @@ func (base *Base) setDriverName(e error) error {
 	case storagedriver.UserSuspendedError:
 		actual.DriverName = base.StorageDriver.Name()
 		return actual
+	case storagedriver.InvalidAccessKeyIdError:
+		actual.DriverName = base.StorageDriver.Name()
+		return actual
 	default:
 		storageError := storagedriver.Error{
 			DriverName: base.StorageDriver.Name(),
