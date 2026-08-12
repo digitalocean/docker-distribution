@@ -92,7 +92,11 @@ func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ..
 
 	var versioned manifest.Versioned
 	if err = json.Unmarshal(content, &versioned); err != nil {
-		return nil, err
+		dcontext.GetLogger(ctx).Warnf("manifest %s: content is not valid JSON: %v", dgst, err)
+		return nil, distribution.ErrManifestUnknownRevision{
+			Name:     ms.repository.Named().Name(),
+			Revision: dgst,
+		}
 	}
 
 	switch versioned.SchemaVersion {
@@ -114,19 +118,50 @@ func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ..
 
 			// First see if it looks like an image index
 			res, err := ms.ocischemaIndexHandler.Unmarshal(ctx, dgst, content)
-			resIndex := res.(*ocischema.DeserializedImageIndex)
-			if err == nil && resIndex.Manifests != nil {
-				return resIndex, nil
+			if err == nil {
+				if resIndex, ok := res.(*ocischema.DeserializedImageIndex); ok && resIndex.Manifests != nil {
+					return resIndex, nil
+				}
 			}
 
 			// Otherwise, assume it must be an image manifest
-			return ms.ocischemaHandler.Unmarshal(ctx, dgst, content)
+			res, err = ms.ocischemaHandler.Unmarshal(ctx, dgst, content)
+			if err != nil {
+				dcontext.GetLogger(ctx).Warnf("manifest %s: content without a media type is not a valid image manifest: %v", dgst, err)
+				return nil, distribution.ErrManifestUnknownRevision{
+					Name:     ms.repository.Named().Name(),
+					Revision: dgst,
+				}
+			}
+
+			// Unmarshalling an image manifest only rejects a conflicting media
+			// type, so content that is not a manifest at all still deserializes
+			// into an empty one. Every image manifest references a config blob;
+			// without one the content describes nothing and is not servable.
+			resManifest, ok := res.(*ocischema.DeserializedManifest)
+			if !ok || resManifest.Config.Digest == "" {
+				dcontext.GetLogger(ctx).Warnf("manifest %s: content without a media type has no config descriptor", dgst)
+				return nil, distribution.ErrManifestUnknownRevision{
+					Name:     ms.repository.Named().Name(),
+					Revision: dgst,
+				}
+			}
+
+			return resManifest, nil
 		default:
-			return nil, distribution.ErrManifestVerification{fmt.Errorf("unrecognized manifest content type %s", versioned.MediaType)}
+			dcontext.GetLogger(ctx).Warnf("manifest %s: unrecognized manifest content type %s", dgst, versioned.MediaType)
+			return nil, distribution.ErrManifestUnknownRevision{
+				Name:     ms.repository.Named().Name(),
+				Revision: dgst,
+			}
 		}
 	}
 
-	return nil, fmt.Errorf("unrecognized manifest schema version %d", versioned.SchemaVersion)
+	dcontext.GetLogger(ctx).Warnf("manifest %s: unrecognized manifest schema version %d", dgst, versioned.SchemaVersion)
+	return nil, distribution.ErrManifestUnknownRevision{
+		Name:     ms.repository.Named().Name(),
+		Revision: dgst,
+	}
 }
 
 func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {

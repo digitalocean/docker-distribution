@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"reflect"
 	"testing"
 
 	"github.com/docker/distribution"
@@ -328,7 +327,7 @@ func testManifestStorage(t *testing.T, schema1Enabled bool, options ...RegistryO
 	case distribution.ErrManifestUnknownRevision:
 		break
 	default:
-		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+		t.Errorf("Unexpected error getting deleted manifest: %T", err)
 	}
 
 	if deletedManifest != nil {
@@ -531,6 +530,92 @@ func testOCIManifestStorage(t *testing.T, testname string, includeMediaTypes boo
 
 	if payloadMediaType != v1.MediaTypeImageIndex {
 		t.Fatalf("%s: unexpected MediaType for index payload, %s", testname, payloadMediaType)
+	}
+}
+
+// TestManifestGetNonManifestContent ensures content that is readable as a blob
+// but is not a recognizable manifest reports ErrManifestUnknownRevision, which
+// the API maps to 404, rather than an untyped error that maps to 500.
+func TestManifestGetNonManifestContent(t *testing.T) {
+	for _, testcase := range []struct {
+		name    string
+		content []byte
+	}{
+		{
+			name:    "image config blob carries no schema version",
+			content: []byte(`{"architecture":"amd64","os":"linux","rootfs":{"type":"layers","diff_ids":[]}}`),
+		},
+		{
+			name:    "schema version 2 with an unregistered media type",
+			content: []byte(`{"schemaVersion":2,"mediaType":"application/vnd.example.not-a-manifest.v1+json"}`),
+		},
+		{
+			name:    "content is not JSON at all",
+			content: []byte("this is not a manifest"),
+		},
+		{
+			name:    "no media type and no config descriptor",
+			content: []byte(`{"schemaVersion":2}`),
+		},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			repoName, _ := reference.WithName("foo/bar")
+			env := newManifestStoreTestEnv(t, repoName, "thetag")
+
+			ctx := context.Background()
+			manifestService, err := env.repository.Manifests(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			descriptor, err := env.repository.Blobs(ctx).Put(ctx, "", testcase.content)
+			if err != nil {
+				t.Fatalf("unexpected error putting content as a blob: %v", err)
+			}
+
+			_, err = manifestService.Get(ctx, descriptor.Digest)
+			if err == nil {
+				t.Fatal("expected an error fetching non-manifest content as a manifest")
+			}
+
+			if _, ok := err.(distribution.ErrManifestUnknownRevision); !ok {
+				t.Fatalf("expected ErrManifestUnknownRevision, got %T: %v", err, err)
+			}
+		})
+	}
+}
+
+// TestManifestGetMalformedIndexWithoutMediaType covers content that reaches the
+// empty-media-type branch and fails image index unmarshalling. The index
+// handler returns a nil manifest alongside its error, so Get must check that
+// error before type-asserting the result. The image manifest fallback then
+// deserializes the same content into a manifest with no config descriptor,
+// which must be reported as unknown rather than served.
+func TestManifestGetMalformedIndexWithoutMediaType(t *testing.T) {
+	repoName, _ := reference.WithName("foo/bar")
+	env := newManifestStoreTestEnv(t, repoName, "thetag")
+
+	ctx := context.Background()
+	manifestService, err := env.repository.Manifests(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := []byte(`{"schemaVersion":2,"manifests":"not-a-list"}`)
+
+	descriptor, err := env.repository.Blobs(ctx).Put(ctx, "", content)
+	if err != nil {
+		t.Fatalf("unexpected error putting content as a blob: %v", err)
+	}
+
+	// This call panics against the pre-fix code.
+	fetched, err := manifestService.Get(ctx, descriptor.Digest)
+	if err == nil {
+		t.Fatalf("expected an error fetching malformed content as a manifest, got %T", fetched)
+	}
+
+	if _, ok := err.(distribution.ErrManifestUnknownRevision); !ok {
+		t.Fatalf("expected ErrManifestUnknownRevision, got %T: %v", err, err)
 	}
 }
 
