@@ -554,6 +554,10 @@ func TestManifestGetNonManifestContent(t *testing.T) {
 			name:    "content is not JSON at all",
 			content: []byte("this is not a manifest"),
 		},
+		{
+			name:    "no media type and no config descriptor",
+			content: []byte(`{"schemaVersion":2}`),
+		},
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			repoName, _ := reference.WithName("foo/bar")
@@ -585,7 +589,9 @@ func TestManifestGetNonManifestContent(t *testing.T) {
 // TestManifestGetMalformedIndexWithoutMediaType covers content that reaches the
 // empty-media-type branch and fails image index unmarshalling. The index
 // handler returns a nil manifest alongside its error, so Get must check that
-// error before type-asserting the result.
+// error before type-asserting the result. The image manifest fallback then
+// deserializes the same content into a manifest with no config descriptor,
+// which must be reported as unknown rather than served.
 func TestManifestGetMalformedIndexWithoutMediaType(t *testing.T) {
 	repoName, _ := reference.WithName("foo/bar")
 	env := newManifestStoreTestEnv(t, repoName, "thetag")
@@ -603,9 +609,14 @@ func TestManifestGetMalformedIndexWithoutMediaType(t *testing.T) {
 		t.Fatalf("unexpected error putting content as a blob: %v", err)
 	}
 
-	// The assertion is that this call returns rather than panics.
-	if _, err := manifestService.Get(ctx, descriptor.Digest); err != nil {
-		t.Logf("manifest get returned an error, which is acceptable here: %v", err)
+	// This call panics against the pre-fix code.
+	fetched, err := manifestService.Get(ctx, descriptor.Digest)
+	if err == nil {
+		t.Fatalf("expected an error fetching malformed content as a manifest, got %T", fetched)
+	}
+
+	if _, ok := err.(distribution.ErrManifestUnknownRevision); !ok {
+		t.Fatalf("expected ErrManifestUnknownRevision, got %T: %v", err, err)
 	}
 }
 
