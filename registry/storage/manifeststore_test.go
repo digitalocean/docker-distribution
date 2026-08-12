@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"reflect"
 	"testing"
 
 	"github.com/docker/distribution"
@@ -328,7 +327,7 @@ func testManifestStorage(t *testing.T, schema1Enabled bool, options ...RegistryO
 	case distribution.ErrManifestUnknownRevision:
 		break
 	default:
-		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+		t.Errorf("Unexpected error getting deleted manifest: %T", err)
 	}
 
 	if deletedManifest != nil {
