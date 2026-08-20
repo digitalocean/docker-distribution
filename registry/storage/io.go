@@ -12,6 +12,11 @@ const (
 	maxBlobGetSize = 4 << 20
 )
 
+// errReadExceedsLimit is returned when a read exceeds the limit set by
+// limitReader. It is a sentinel so callers can distinguish oversized content
+// from other storage errors.
+var errReadExceedsLimit = errors.New("storage: read exceeds limit")
+
 func getContent(ctx context.Context, driver driver.StorageDriver, p string) ([]byte, error) {
 	r, err := driver.Reader(ctx, p, 0)
 	if err != nil {
@@ -66,6 +71,6 @@ func (l *limitedReader) Read(p []byte) (n int, err error) {
 	n = int(l.n)
 	l.n = 0
 
-	l.err = errors.New("storage: read exceeds limit")
+	l.err = errReadExceedsLimit
 	return n, l.err
 }

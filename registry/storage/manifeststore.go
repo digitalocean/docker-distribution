@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/docker/distribution"
@@ -80,7 +81,11 @@ func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ..
 
 	content, err := ms.blobStore.Get(ctx, dgst)
 	if err != nil {
-		if err == distribution.ErrBlobUnknown {
+		// A valid manifest can never exceed the read limit because manifest
+		// PUTs are capped at the same size, so an oversized read here means
+		// the digest refers to a blob (e.g. a layer), not a manifest. Treat
+		// it as an unknown manifest (404) rather than an internal error.
+		if err == distribution.ErrBlobUnknown || errors.Is(err, errReadExceedsLimit) {
 			return nil, distribution.ErrManifestUnknownRevision{
 				Name:     ms.repository.Named().Name(),
 				Revision: dgst,
