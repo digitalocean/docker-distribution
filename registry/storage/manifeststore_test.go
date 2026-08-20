@@ -585,6 +585,40 @@ func TestManifestGetNonManifestContent(t *testing.T) {
 	}
 }
 
+// TestManifestGetOversizedBlobContent ensures that fetching a digest whose
+// content exceeds the blob read limit through the manifest service reports
+// ErrManifestUnknownRevision (mapped to 404 by the API) rather than the
+// untyped read-limit error (mapped to 500). Oversized content can never be a
+// valid manifest because manifest puts are capped at the same size.
+func TestManifestGetOversizedBlobContent(t *testing.T) {
+	repoName, _ := reference.WithName("foo/bar")
+	env := newManifestStoreTestEnv(t, repoName, "thetag")
+
+	ctx := context.Background()
+	manifestService, err := env.repository.Manifests(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A blob just over the read limit, e.g. a layer or large config blob
+	// requested through the manifests endpoint.
+	content := make([]byte, maxBlobGetSize+1)
+
+	descriptor, err := env.repository.Blobs(ctx).Put(ctx, "", content)
+	if err != nil {
+		t.Fatalf("unexpected error putting content as a blob: %v", err)
+	}
+
+	_, err = manifestService.Get(ctx, descriptor.Digest)
+	if err == nil {
+		t.Fatal("expected an error fetching oversized content as a manifest")
+	}
+
+	if _, ok := err.(distribution.ErrManifestUnknownRevision); !ok {
+		t.Fatalf("expected ErrManifestUnknownRevision, got %T: %v", err, err)
+	}
+}
+
 // TestManifestGetMalformedIndexWithoutMediaType covers content that reaches the
 // empty-media-type branch and fails image index unmarshalling. The index
 // handler returns a nil manifest alongside its error, so Get must check that
