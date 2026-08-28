@@ -1207,7 +1207,7 @@ func (d *driver) Walk(ctx context.Context, from string, f storagedriver.WalkFn) 
 
 	var objectCount int64
 	if err := d.doWalk(ctx, &objectCount, d.s3Path(path), prefix, f); err != nil {
-		return err
+		return parseError(from, err)
 	}
 
 	// S3 doesn't have the concept of empty directories, so it'll return path not found if there are no objects
@@ -1414,6 +1414,8 @@ func parseError(path string, err error) error {
 			return storagedriver.QuotaExceededError{}
 		case "UserSuspended":
 			return storagedriver.UserSuspendedError{}
+		case "InvalidAccessKeyId":
+			return storagedriver.InvalidAccessKeyIdError{}
 		}
 	}
 	return err
