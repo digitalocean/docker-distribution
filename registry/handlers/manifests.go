@@ -411,7 +411,13 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 		tags := imh.Repository.Tags(imh)
 		err = tags.Tag(imh, imh.Tag, desc)
 		if err != nil {
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			// Preserve typed errors (e.g. 503 Unavailable) so clients get the right retry semantics.
+			switch typedErr := err.(type) {
+			case errcode.Error, errcode.ErrorCode:
+				imh.Errors = append(imh.Errors, typedErr)
+			default:
+				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			}
 			return
 		}
 
