@@ -28,6 +28,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
+	repositorymiddleware "github.com/docker/distribution/registry/middleware/repository"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/factory"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
@@ -1435,6 +1436,133 @@ func TestGetManifestWithStorageError(t *testing.T) {
 
 	repo, _ = reference.WithName(repositoryWithManifestBadLink)
 	testManifestWithStorageError(t, env1, repo, http.StatusInternalServerError, errcode.ErrorCodeUnknown)
+}
+
+// tagErrorRepository is a repository middleware whose TagService.Tag always fails with the configured error.
+type tagErrorRepository struct {
+	distribution.Repository
+	tagErr error
+}
+
+func (r *tagErrorRepository) Tags(ctx context.Context) distribution.TagService {
+	return &tagErrorService{TagService: r.Repository.Tags(ctx), tagErr: r.tagErr}
+}
+
+type tagErrorService struct {
+	distribution.TagService
+	tagErr error
+}
+
+func (s *tagErrorService) Tag(ctx context.Context, tag string, desc distribution.Descriptor) error {
+	return s.tagErr
+}
+
+func init() {
+	if err := repositorymiddleware.Register("tagerror", func(ctx context.Context, repository distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+		tagErr, ok := options["error"].(error)
+		if !ok {
+			return nil, errors.New("tagerror middleware requires an \"error\" option")
+		}
+		return &tagErrorRepository{Repository: repository, tagErr: tagErr}, nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
+func newTestEnvWithTagError(t *testing.T, tagErr error) *testEnv {
+	config := configuration.Configuration{
+		Storage: configuration.Storage{
+			"inmemory": configuration.Parameters{},
+			"maintenance": configuration.Parameters{"uploadpurging": map[interface{}]interface{}{
+				"enabled": false,
+			}},
+		},
+		Middleware: map[string][]configuration.Middleware{
+			"repository": {{Name: "tagerror", Options: configuration.Parameters{"error": tagErr}}},
+		},
+	}
+	config.HTTP.Headers = headerConfig
+
+	return newTestEnvWithConfig(t, &config)
+}
+
+func TestPutManifestTagError(t *testing.T) {
+	const unavailableMessage = "control plane unavailable"
+
+	testCases := []struct {
+		name            string
+		tagErr          error
+		expectedStatus  int
+		expectedCode    errcode.ErrorCode
+		expectedMessage string
+	}{
+		{
+			name:            "errcode.Error from tag write is returned unchanged with its message",
+			tagErr:          errcode.ErrorCodeUnavailable.WithMessage(unavailableMessage),
+			expectedStatus:  http.StatusServiceUnavailable,
+			expectedCode:    errcode.ErrorCodeUnavailable,
+			expectedMessage: unavailableMessage,
+		},
+		{
+			name:           "bare errcode.ErrorCode from tag write is returned unchanged",
+			tagErr:         errcode.ErrorCodeUnavailable,
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedCode:   errcode.ErrorCodeUnavailable,
+		},
+		{
+			name:           "plain error from tag write maps to unknown",
+			tagErr:         errors.New("tag link write failed"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedCode:   errcode.ErrorCodeUnknown,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			env := newTestEnvWithTagError(t, testCase.tagErr)
+			defer env.Shutdown()
+
+			imageName, _ := reference.WithName("foo/tagerror")
+			tagRef, _ := reference.WithTag(imageName, "latest")
+			manifestURL, err := env.builder.BuildManifestURL(tagRef)
+			if err != nil {
+				t.Fatalf("unexpected error getting manifest url: %v", err)
+			}
+
+			sampleConfig := []byte(`{"architecture":"amd64","rootfs":{"type":"layers","diff_ids":[]}}`)
+			sampleConfigDigest := digest.FromBytes(sampleConfig)
+			uploadURLBase, _ := startPushLayer(t, env, imageName)
+			pushLayer(t, env.builder, imageName, sampleConfigDigest, uploadURLBase, bytes.NewReader(sampleConfig))
+
+			manifest := &schema2.Manifest{
+				Versioned: manifest.Versioned{
+					SchemaVersion: 2,
+					MediaType:     schema2.MediaTypeManifest,
+				},
+				Config: distribution.Descriptor{
+					Digest:    sampleConfigDigest,
+					Size:      int64(len(sampleConfig)),
+					MediaType: schema2.MediaTypeImageConfig,
+				},
+			}
+
+			resp := putManifest(t, "putting tagged manifest", manifestURL, schema2.MediaTypeManifest, manifest)
+			defer resp.Body.Close()
+			checkResponse(t, "putting tagged manifest with failing tag write", resp, testCase.expectedStatus)
+			errs, body, _ := checkBodyHasErrorCodes(t, "putting tagged manifest with failing tag write", resp, testCase.expectedCode)
+
+			if testCase.expectedMessage == "" {
+				return
+			}
+			typedErr, ok := errs[0].(errcode.Error)
+			if !ok {
+				t.Fatalf("expected errcode.Error carrying a message, got %#v: %s", errs[0], string(body))
+			}
+			if typedErr.Message != testCase.expectedMessage {
+				t.Fatalf("unexpected error message: %q != %q", typedErr.Message, testCase.expectedMessage)
+			}
+		})
+	}
 }
 
 func TestManifestDelete(t *testing.T) {
