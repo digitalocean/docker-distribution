@@ -560,7 +560,13 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnsupported)
 			return
 		default:
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown)
+			// Preserve typed errors (e.g. 503 Unavailable, 412 Precondition Failed) so clients get the right retry semantics.
+			switch typedErr := err.(type) {
+			case errcode.Error, errcode.ErrorCode:
+				imh.Errors = append(imh.Errors, typedErr)
+			default:
+				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown)
+			}
 			return
 		}
 	}
