@@ -1565,6 +1565,144 @@ func TestPutManifestTagError(t *testing.T) {
 	}
 }
 
+// manifestDeleteErrorRepository is a repository middleware whose ManifestService.Delete always fails with the configured error.
+type manifestDeleteErrorRepository struct {
+	distribution.Repository
+	deleteErr error
+}
+
+func (r *manifestDeleteErrorRepository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
+	manifestService, err := r.Repository.Manifests(ctx, options...)
+	if err != nil {
+		return nil, err
+	}
+	return &manifestDeleteErrorService{ManifestService: manifestService, deleteErr: r.deleteErr}, nil
+}
+
+type manifestDeleteErrorService struct {
+	distribution.ManifestService
+	deleteErr error
+}
+
+func (s *manifestDeleteErrorService) Delete(ctx context.Context, dgst digest.Digest) error {
+	return s.deleteErr
+}
+
+func init() {
+	if err := repositorymiddleware.Register("manifestdeleteerror", func(ctx context.Context, repository distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+		deleteErr, ok := options["error"].(error)
+		if !ok {
+			return nil, errors.New("manifestdeleteerror middleware requires an \"error\" option")
+		}
+		return &manifestDeleteErrorRepository{Repository: repository, deleteErr: deleteErr}, nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
+func newTestEnvWithManifestDeleteError(t *testing.T, deleteErr error) *testEnv {
+	config := configuration.Configuration{
+		Storage: configuration.Storage{
+			"inmemory": configuration.Parameters{},
+			"delete":   configuration.Parameters{"enabled": true},
+			"maintenance": configuration.Parameters{"uploadpurging": map[interface{}]interface{}{
+				"enabled": false,
+			}},
+		},
+		Middleware: map[string][]configuration.Middleware{
+			"repository": {{Name: "manifestdeleteerror", Options: configuration.Parameters{"error": deleteErr}}},
+		},
+	}
+	config.HTTP.Headers = headerConfig
+
+	return newTestEnvWithConfig(t, &config)
+}
+
+// errorCodeTestManifestReferenced stands in for a registry-specific 412 code returned by a ManifestService.Delete implementation.
+var errorCodeTestManifestReferenced = errcode.Register("handlers_test", errcode.ErrorDescriptor{
+	Value:          "TEST_MANIFEST_REFERENCED",
+	Message:        "manifest is referenced by an image index",
+	HTTPStatusCode: http.StatusPreconditionFailed,
+})
+
+func TestDeleteManifestError(t *testing.T) {
+	const unavailableMessage = "control plane unavailable"
+
+	testCases := []struct {
+		name            string
+		deleteErr       error
+		expectedStatus  int
+		expectedCode    errcode.ErrorCode
+		expectedMessage string
+	}{
+		{
+			name:            "errcode.Error from manifest delete is returned unchanged with its message",
+			deleteErr:       errcode.ErrorCodeUnavailable.WithMessage(unavailableMessage),
+			expectedStatus:  http.StatusServiceUnavailable,
+			expectedCode:    errcode.ErrorCodeUnavailable,
+			expectedMessage: unavailableMessage,
+		},
+		{
+			name:           "bare errcode.ErrorCode from manifest delete is returned unchanged",
+			deleteErr:      errcode.ErrorCodeUnavailable,
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedCode:   errcode.ErrorCodeUnavailable,
+		},
+		{
+			name:           "custom 412 errcode from manifest delete keeps its status and code",
+			deleteErr:      errorCodeTestManifestReferenced.WithMessage("still referenced"),
+			expectedStatus: http.StatusPreconditionFailed,
+			expectedCode:   errorCodeTestManifestReferenced,
+		},
+		{
+			name:           "plain error from manifest delete maps to unknown",
+			deleteErr:      errors.New("manifest link delete failed"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedCode:   errcode.ErrorCodeUnknown,
+		},
+		{
+			name:           "ErrBlobUnknown from manifest delete still maps to manifest unknown",
+			deleteErr:      distribution.ErrBlobUnknown,
+			expectedStatus: http.StatusNotFound,
+			expectedCode:   v2.ErrorCodeManifestUnknown,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			env := newTestEnvWithManifestDeleteError(t, testCase.deleteErr)
+			defer env.Shutdown()
+
+			imageName, _ := reference.WithName("foo/manifestdeleteerror")
+			digestRef, _ := reference.WithDigest(imageName, digestSha256EmptyTar)
+			manifestURL, err := env.builder.BuildManifestURL(digestRef)
+			if err != nil {
+				t.Fatalf("unexpected error getting manifest url: %v", err)
+			}
+
+			resp, err := httpDelete(manifestURL)
+			if err != nil {
+				t.Fatalf("unexpected error deleting manifest: %v", err)
+			}
+			defer resp.Body.Close()
+
+			checkResponse(t, "deleting manifest with failing manifest delete", resp, testCase.expectedStatus)
+			errs, body, _ := checkBodyHasErrorCodes(t, "deleting manifest with failing manifest delete", resp, testCase.expectedCode)
+
+			if testCase.expectedMessage == "" {
+				return
+			}
+			typedErr, ok := errs[0].(errcode.Error)
+			if !ok {
+				t.Fatalf("expected errcode.Error carrying a message, got %#v: %s", errs[0], string(body))
+			}
+			if typedErr.Message != testCase.expectedMessage {
+				t.Fatalf("unexpected error message: %q != %q", typedErr.Message, testCase.expectedMessage)
+			}
+		})
+	}
+}
+
 func TestManifestDelete(t *testing.T) {
 	schema1Repo, _ := reference.WithName("foo/schema1")
 	schema2Repo, _ := reference.WithName("foo/schema2")
