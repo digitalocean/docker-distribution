@@ -688,7 +688,9 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 		}
 		context := app.context(w, r)
 
-		dcontext.GetRequestLogger(context).Infof("request received")
+		// DOCR-2552: demote per-request Info — under pull load these convoy on the
+		// process-wide logrus mutex (see ESC-27854 dump: ~588 waiters on Infof here).
+		dcontext.GetRequestLogger(context).Debugf("request received")
 
 		defer func() {
 			if r.Context().Err() != nil {
@@ -702,7 +704,7 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 				_ = errcode.ServeJSON(w, context.Errors)
 				app.logError(context, context.Errors)
 			} else if status, ok := context.Value("http.response.status").(int); ok && status >= 200 && status <= 399 {
-				dcontext.GetResponseLogger(context).Infof("response completed")
+				dcontext.GetResponseLogger(context).Debugf("response completed")
 			}
 		}()
 
@@ -909,7 +911,8 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, ctx *Context)
 
 	authorizedCtx = context.WithValue(authorizedCtx, "authorize_duration", time.Since(startedAt).Seconds())
 
-	dcontext.GetLogger(authorizedCtx, auth.UserNameKey, "authorize_duration").Info("authorized request")
+	// DOCR-2552: every authorized request hit logrus Info; demote to Debug.
+	dcontext.GetLogger(authorizedCtx, auth.UserNameKey, "authorize_duration").Debug("authorized request")
 
 	// TODO(stevvooe): This pattern needs to be cleaned up a bit. One context
 	// should be replaced by another, rather than replacing the context on a
