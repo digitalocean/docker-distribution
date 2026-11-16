@@ -1838,6 +1838,44 @@ func TestDeleteTagError(t *testing.T) {
 	}
 }
 
+func TestDeleteTagKeepsTag(t *testing.T) {
+	const keptTag = "kept"
+
+	env := newTestEnvWithUntagErrors(t, map[string]error{keptTag: distribution.ErrTagKept})
+	defer env.Shutdown()
+
+	imageName, _ := reference.WithName("foo/tagdeletekept")
+	args := testManifestAPISchema2(t, env, imageName)
+
+	tagRef, _ := reference.WithTag(imageName, keptTag)
+	manifestTagURL, err := env.builder.BuildManifestURL(tagRef)
+	checkErr(t, err, "building manifest tag url")
+	resp := putManifest(t, "putting manifest by tag", manifestTagURL, args.mediaType, args.manifest)
+	checkResponse(t, "putting manifest by tag", resp, http.StatusCreated)
+
+	resp, err = httpDelete(manifestTagURL)
+	checkErr(t, err, "deleting tag")
+	defer resp.Body.Close()
+	checkResponse(t, "deleting a kept tag", resp, http.StatusAccepted)
+
+	tagsURL, err := env.builder.BuildTagsURL(imageName)
+	checkErr(t, err, "building tags url")
+	resp, err = http.Get(tagsURL)
+	checkErr(t, err, "listing tags")
+	defer resp.Body.Close()
+
+	var tagsResponse tagsAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tagsResponse); err != nil {
+		t.Fatalf("unexpected error decoding tags response: %v", err)
+	}
+	for _, tag := range tagsResponse.Tags {
+		if tag == keptTag {
+			return
+		}
+	}
+	t.Fatalf("expected the kept tag to remain: %v", tagsResponse.Tags)
+}
+
 func TestDeleteManifestKeepsTag(t *testing.T) {
 	const (
 		keptTag    = "kept"

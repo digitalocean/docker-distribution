@@ -528,7 +528,8 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 	if imh.Tag != "" {
 		dcontext.GetLogger(imh).Debug("DeleteImageTag")
 		tagService := imh.Repository.Tags(imh.Context)
-		if err := tagService.Untag(imh.Context, imh.Tag); err != nil {
+		// A kept tag answers 202, the same as the digest path.
+		if err := tagService.Untag(imh.Context, imh.Tag); err != nil && !errors.Is(err, distribution.ErrTagKept) {
 			switch typedErr := err.(type) {
 			case distribution.ErrTagUnknown, driver.PathNotFoundError:
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
