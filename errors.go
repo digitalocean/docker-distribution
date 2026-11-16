@@ -24,6 +24,12 @@ var ErrUnsupported = errors.New("operation unsupported")
 // manifest but the registry is configured to reject it
 var ErrSchemaV1Unsupported = errors.New("manifest schema v1 unsupported")
 
+// ErrManifestKept is returned by ManifestService.Delete when the manifest was left in place on purpose.
+var ErrManifestKept = errors.New("manifest kept")
+
+// ErrTagKept is returned by Untag when the tag was left in place on purpose.
+var ErrTagKept = errors.New("tag kept")
+
 // ErrTagUnknown is returned if the given tag is not known by the tag service
 type ErrTagUnknown struct {
 	Tag string

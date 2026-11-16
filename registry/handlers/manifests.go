@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -527,10 +528,13 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 	if imh.Tag != "" {
 		dcontext.GetLogger(imh).Debug("DeleteImageTag")
 		tagService := imh.Repository.Tags(imh.Context)
-		if err := tagService.Untag(imh.Context, imh.Tag); err != nil {
-			switch err.(type) {
+		// A kept tag answers 202, the same as the digest path.
+		if err := tagService.Untag(imh.Context, imh.Tag); err != nil && !errors.Is(err, distribution.ErrTagKept) {
+			switch typedErr := err.(type) {
 			case distribution.ErrTagUnknown, driver.PathNotFoundError:
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
+			case errcode.Error, errcode.ErrorCode:
+				imh.Errors = append(imh.Errors, typedErr)
 			default:
 				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 			}
@@ -547,7 +551,8 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = manifests.Delete(imh, imh.Digest)
-	if err != nil {
+	// A kept manifest still has its tags untagged below; the service keeps the ones that are live.
+	if err != nil && !errors.Is(err, distribution.ErrManifestKept) {
 		switch err {
 		case digest.ErrDigestUnsupported:
 		case digest.ErrDigestInvalidFormat:
@@ -579,7 +584,11 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 	}
 
 	for _, tag := range referencedTags {
-		if err := tagService.Untag(imh, tag); err != nil {
+		err := tagService.Untag(imh, tag)
+		if errors.Is(err, distribution.ErrTagKept) {
+			continue
+		}
+		if err != nil {
 			imh.Errors = append(imh.Errors, err)
 			return
 		}
