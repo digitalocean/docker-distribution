@@ -2,6 +2,8 @@ package notifications
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -58,6 +60,49 @@ func TestListener(t *testing.T) {
 	if !reflect.DeepEqual(tl.ops, expectedOps) {
 		t.Fatalf("counts do not match:\n%v\n !=\n%v", tl.ops, expectedOps)
 	}
+}
+
+func TestListenerSendsNoTagDeleteForKeptTag(t *testing.T) {
+	ctx := dcontext.Background()
+
+	registry, err := storage.NewRegistry(ctx, inmemory.New())
+	if err != nil {
+		t.Fatalf("error creating registry: %v", err)
+	}
+	repoRef, _ := reference.WithName("foo/bar")
+	repository, err := registry.Repository(ctx, repoRef)
+	if err != nil {
+		t.Fatalf("unexpected error getting repo: %v", err)
+	}
+	tl := &testListener{
+		ops: make(map[string]int),
+	}
+	repository, _ = Listen(&keptTagRepository{Repository: repository}, nil, tl)
+
+	err = repository.Tags(ctx).Untag(ctx, "kept")
+
+	if !errors.Is(err, distribution.ErrTagKept) {
+		t.Fatalf("expected ErrTagKept to reach the caller, got %v", err)
+	}
+	if tl.ops["tag:delete"] != 0 {
+		t.Fatalf("expected no tag delete event for a kept tag, got %d", tl.ops["tag:delete"])
+	}
+}
+
+type keptTagRepository struct {
+	distribution.Repository
+}
+
+func (r *keptTagRepository) Tags(ctx context.Context) distribution.TagService {
+	return &keptTagService{TagService: r.Repository.Tags(ctx)}
+}
+
+type keptTagService struct {
+	distribution.TagService
+}
+
+func (s *keptTagService) Untag(ctx context.Context, tag string) error {
+	return distribution.ErrTagKept
 }
 
 type testListener struct {

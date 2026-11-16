@@ -1703,6 +1703,177 @@ func TestDeleteManifestError(t *testing.T) {
 	}
 }
 
+type untagErrorRepository struct {
+	distribution.Repository
+	untagErrs map[string]error
+}
+
+func (r *untagErrorRepository) Tags(ctx context.Context) distribution.TagService {
+	return &untagErrorService{TagService: r.Repository.Tags(ctx), untagErrs: r.untagErrs}
+}
+
+type untagErrorService struct {
+	distribution.TagService
+	untagErrs map[string]error
+}
+
+func (s *untagErrorService) Untag(ctx context.Context, tag string) error {
+	if untagErr, ok := s.untagErrs[tag]; ok {
+		return untagErr
+	}
+	return s.TagService.Untag(ctx, tag)
+}
+
+func init() {
+	if err := repositorymiddleware.Register("untagerror", func(ctx context.Context, repository distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
+		untagErrs, ok := options["errors"].(map[string]error)
+		if !ok {
+			return nil, errors.New("untagerror middleware requires an \"errors\" option")
+		}
+		return &untagErrorRepository{Repository: repository, untagErrs: untagErrs}, nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
+func newTestEnvWithUntagErrors(t *testing.T, untagErrs map[string]error) *testEnv {
+	config := configuration.Configuration{
+		Storage: configuration.Storage{
+			"inmemory": configuration.Parameters{},
+			"delete":   configuration.Parameters{"enabled": true},
+			"maintenance": configuration.Parameters{"uploadpurging": map[interface{}]interface{}{
+				"enabled": false,
+			}},
+		},
+		Middleware: map[string][]configuration.Middleware{
+			"repository": {{Name: "untagerror", Options: configuration.Parameters{"errors": untagErrs}}},
+		},
+	}
+	config.Compatibility.Schema1.Enabled = true //nolint:staticcheck // Ignore SA1019: "github.com/docker/distribution/manifest/schema1" is deprecated, as it's used for backward compatibility.
+	config.HTTP.Headers = headerConfig
+
+	return newTestEnvWithConfig(t, &config)
+}
+
+func TestDeleteTagError(t *testing.T) {
+	const (
+		tag                = "thetag"
+		unavailableMessage = "control plane unavailable"
+	)
+
+	testCases := []struct {
+		name            string
+		untagErr        error
+		expectedStatus  int
+		expectedCode    errcode.ErrorCode
+		expectedMessage string
+	}{
+		{
+			name:            "errcode.Error from untag is returned unchanged with its message",
+			untagErr:        errcode.ErrorCodeUnavailable.WithMessage(unavailableMessage),
+			expectedStatus:  http.StatusServiceUnavailable,
+			expectedCode:    errcode.ErrorCodeUnavailable,
+			expectedMessage: unavailableMessage,
+		},
+		{
+			name:           "bare errcode.ErrorCode from untag is returned unchanged",
+			untagErr:       errcode.ErrorCodeUnavailable,
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedCode:   errcode.ErrorCodeUnavailable,
+		},
+		{
+			name:           "plain error from untag maps to unknown",
+			untagErr:       errors.New("tag link delete failed"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedCode:   errcode.ErrorCodeUnknown,
+		},
+		{
+			name:           "ErrTagUnknown from untag still maps to manifest unknown",
+			untagErr:       distribution.ErrTagUnknown{Tag: tag},
+			expectedStatus: http.StatusNotFound,
+			expectedCode:   v2.ErrorCodeManifestUnknown,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			env := newTestEnvWithUntagErrors(t, map[string]error{tag: testCase.untagErr})
+			defer env.Shutdown()
+
+			imageName, _ := reference.WithName("foo/untagerror")
+			tagRef, _ := reference.WithTag(imageName, tag)
+			manifestURL, err := env.builder.BuildManifestURL(tagRef)
+			if err != nil {
+				t.Fatalf("unexpected error getting manifest url: %v", err)
+			}
+
+			resp, err := httpDelete(manifestURL)
+			if err != nil {
+				t.Fatalf("unexpected error deleting tag: %v", err)
+			}
+			defer resp.Body.Close()
+
+			checkResponse(t, "deleting tag with failing untag", resp, testCase.expectedStatus)
+			errs, body, _ := checkBodyHasErrorCodes(t, "deleting tag with failing untag", resp, testCase.expectedCode)
+
+			if testCase.expectedMessage == "" {
+				return
+			}
+			typedErr, ok := errs[0].(errcode.Error)
+			if !ok {
+				t.Fatalf("expected errcode.Error carrying a message, got %#v: %s", errs[0], string(body))
+			}
+			if typedErr.Message != testCase.expectedMessage {
+				t.Fatalf("unexpected error message: %q != %q", typedErr.Message, testCase.expectedMessage)
+			}
+		})
+	}
+}
+
+func TestDeleteManifestKeepsTag(t *testing.T) {
+	const (
+		keptTag    = "kept"
+		removedTag = "removed"
+	)
+
+	env := newTestEnvWithUntagErrors(t, map[string]error{keptTag: distribution.ErrTagKept})
+	defer env.Shutdown()
+
+	imageName, _ := reference.WithName("foo/untagkept")
+	args := testManifestAPISchema2(t, env, imageName)
+
+	for _, tag := range []string{keptTag, removedTag} {
+		tagRef, _ := reference.WithTag(imageName, tag)
+		manifestTagURL, err := env.builder.BuildManifestURL(tagRef)
+		checkErr(t, err, "building manifest tag url")
+		resp := putManifest(t, "putting manifest by tag", manifestTagURL, args.mediaType, args.manifest)
+		checkResponse(t, "putting manifest by tag", resp, http.StatusCreated)
+	}
+
+	digestRef, _ := reference.WithDigest(imageName, args.dgst)
+	manifestDigestURL, err := env.builder.BuildManifestURL(digestRef)
+	checkErr(t, err, "building manifest digest url")
+
+	resp, err := httpDelete(manifestDigestURL)
+	checkErr(t, err, "deleting manifest by digest")
+	defer resp.Body.Close()
+	checkResponse(t, "deleting manifest with a kept tag", resp, http.StatusAccepted)
+
+	tagsURL, err := env.builder.BuildTagsURL(imageName)
+	checkErr(t, err, "building tags url")
+	resp, err = http.Get(tagsURL)
+	checkErr(t, err, "listing tags")
+	defer resp.Body.Close()
+
+	var tagsResponse tagsAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tagsResponse); err != nil {
+		t.Fatalf("unexpected error decoding tags response: %v", err)
+	}
+	if !reflect.DeepEqual(tagsResponse.Tags, []string{keptTag}) {
+		t.Fatalf("expected only the kept tag to remain: %v", tagsResponse.Tags)
+	}
+}
+
 func TestManifestDelete(t *testing.T) {
 	schema1Repo, _ := reference.WithName("foo/schema1")
 	schema2Repo, _ := reference.WithName("foo/schema2")
