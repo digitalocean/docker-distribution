@@ -550,7 +550,8 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = manifests.Delete(imh, imh.Digest)
-	if err != nil {
+	// A kept manifest still has its tags untagged below; the service keeps the ones that are live.
+	if err != nil && !errors.Is(err, distribution.ErrManifestKept) {
 		switch err {
 		case digest.ErrDigestUnsupported:
 		case digest.ErrDigestInvalidFormat:

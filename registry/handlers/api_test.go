@@ -1737,6 +1737,14 @@ func init() {
 }
 
 func newTestEnvWithUntagErrors(t *testing.T, untagErrs map[string]error) *testEnv {
+	return newTestEnvWithRepositoryMiddleware(t, untagErrorMiddleware(untagErrs))
+}
+
+func untagErrorMiddleware(untagErrs map[string]error) configuration.Middleware {
+	return configuration.Middleware{Name: "untagerror", Options: configuration.Parameters{"errors": untagErrs}}
+}
+
+func newTestEnvWithRepositoryMiddleware(t *testing.T, repositoryMiddleware ...configuration.Middleware) *testEnv {
 	config := configuration.Configuration{
 		Storage: configuration.Storage{
 			"inmemory": configuration.Parameters{},
@@ -1746,7 +1754,7 @@ func newTestEnvWithUntagErrors(t *testing.T, untagErrs map[string]error) *testEn
 			}},
 		},
 		Middleware: map[string][]configuration.Middleware{
-			"repository": {{Name: "untagerror", Options: configuration.Parameters{"errors": untagErrs}}},
+			"repository": repositoryMiddleware,
 		},
 	}
 	config.Compatibility.Schema1.Enabled = true //nolint:staticcheck // Ignore SA1019: "github.com/docker/distribution/manifest/schema1" is deprecated, as it's used for backward compatibility.
@@ -1872,6 +1880,61 @@ func TestDeleteManifestKeepsTag(t *testing.T) {
 	if !reflect.DeepEqual(tagsResponse.Tags, []string{keptTag}) {
 		t.Fatalf("expected only the kept tag to remain: %v", tagsResponse.Tags)
 	}
+}
+
+func TestDeleteManifestKeepsManifest(t *testing.T) {
+	const (
+		keptTag    = "kept"
+		removedTag = "removed"
+	)
+
+	env := newTestEnvWithRepositoryMiddleware(t,
+		configuration.Middleware{Name: "manifestdeleteerror", Options: configuration.Parameters{"error": distribution.ErrManifestKept}},
+		untagErrorMiddleware(map[string]error{keptTag: distribution.ErrTagKept}),
+	)
+	defer env.Shutdown()
+
+	imageName, _ := reference.WithName("foo/manifestkept")
+	args := testManifestAPISchema2(t, env, imageName)
+
+	for _, tag := range []string{keptTag, removedTag} {
+		tagRef, _ := reference.WithTag(imageName, tag)
+		manifestTagURL, err := env.builder.BuildManifestURL(tagRef)
+		checkErr(t, err, "building manifest tag url")
+		resp := putManifest(t, "putting manifest by tag", manifestTagURL, args.mediaType, args.manifest)
+		checkResponse(t, "putting manifest by tag", resp, http.StatusCreated)
+	}
+
+	digestRef, _ := reference.WithDigest(imageName, args.dgst)
+	manifestDigestURL, err := env.builder.BuildManifestURL(digestRef)
+	checkErr(t, err, "building manifest digest url")
+
+	resp, err := httpDelete(manifestDigestURL)
+	checkErr(t, err, "deleting manifest by digest")
+	defer resp.Body.Close()
+	checkResponse(t, "deleting a kept manifest", resp, http.StatusAccepted)
+
+	tagsURL, err := env.builder.BuildTagsURL(imageName)
+	checkErr(t, err, "building tags url")
+	resp, err = http.Get(tagsURL)
+	checkErr(t, err, "listing tags")
+	defer resp.Body.Close()
+
+	var tagsResponse tagsAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tagsResponse); err != nil {
+		t.Fatalf("unexpected error decoding tags response: %v", err)
+	}
+	if !reflect.DeepEqual(tagsResponse.Tags, []string{keptTag}) {
+		t.Fatalf("expected the untag loop to run and leave only the kept tag: %v", tagsResponse.Tags)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, manifestDigestURL, nil)
+	checkErr(t, err, "building manifest request")
+	req.Header.Set("Accept", args.mediaType)
+	resp, err = http.DefaultClient.Do(req)
+	checkErr(t, err, "fetching kept manifest by digest")
+	defer resp.Body.Close()
+	checkResponse(t, "fetching a kept manifest", resp, http.StatusOK)
 }
 
 func TestManifestDelete(t *testing.T) {
